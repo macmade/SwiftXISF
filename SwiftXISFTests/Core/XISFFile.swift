@@ -140,4 +140,63 @@ struct Test_XISFFile
 
         try #require( throws: XISFError.self ) { try XISFFile( url: url, options: .strict ) }
     }
+
+    @Test
+    func exposesTopLevelElementNames() async throws
+    {
+        let xml  = "<xisf version=\"1.0\" xmlns=\"http://www.pixinsight.com/xisf\"><Image/><Property/><FITSKeyword/></xisf>"
+        let file = try XISFFile( data: Test_XISFFile.monolithicFile( xml: xml ), options: .strict )
+
+        #expect( file.headerElementNames == [ "Image", "Property", "FITSKeyword" ] )
+    }
+
+    @Test
+    func rejectsWrongRoot() async throws
+    {
+        let xml = "<notxisf version=\"1.0\"/>"
+
+        try #require( throws: XISFError.self ) { try XISFFile( data: Test_XISFFile.monolithicFile( xml: xml ), options: .strict ) }
+    }
+
+    @Test
+    func rejectsMissingVersionWhenStrict() async throws
+    {
+        let xml = "<xisf xmlns=\"http://www.pixinsight.com/xisf\"/>"
+
+        try #require( throws: XISFError.self ) { try XISFFile( data: Test_XISFFile.monolithicFile( xml: xml ), options: .strict ) }
+    }
+
+    @Test
+    func toleratesMissingVersionWhenLenient() async throws
+    {
+        let xml  = "<xisf xmlns=\"http://www.pixinsight.com/xisf\"/>"
+        let file = try XISFFile( data: Test_XISFFile.monolithicFile( xml: xml ), options: .lenient )
+
+        #expect( file.headerElementNames.isEmpty )
+    }
+
+    @Test
+    func rejectsForeignNamespace() async throws
+    {
+        let xml = "<xisf version=\"1.0\" xmlns=\"http://example.com/other\"/>"
+
+        try #require( throws: XISFError.self ) { try XISFFile( data: Test_XISFFile.monolithicFile( xml: xml ), options: .strict ) }
+    }
+
+    @Test
+    func parsesNonNamespacedHeader() async throws
+    {
+        let xml  = "<xisf version=\"1.0\"><Image/></xisf>"
+        let file = try XISFFile( data: Test_XISFFile.monolithicFile( xml: xml ), options: .strict )
+
+        #expect( file.headerElementNames == [ "Image" ] )
+    }
+
+    @Test
+    func rejectsMalformedHeaderXML() async throws
+    {
+        let xml = "<xisf version=\"1.0\"><unclosed></xisf>"
+
+        try #require( throws: XISFError.self ) { try XISFFile( data: Test_XISFFile.monolithicFile( xml: xml ), options: .strict ) }
+    }
 }

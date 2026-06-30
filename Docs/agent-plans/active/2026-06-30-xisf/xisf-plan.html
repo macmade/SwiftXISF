@@ -328,7 +328,7 @@ practical implementation is available.</p>
 </div>
 
 <div class="milestone">
-  <header><span class="num">M4</span><h3>XML header parsing infrastructure</h3><span class="pill notstarted">Not started</span></header>
+  <header><span class="num">M4</span><h3>XML header parsing infrastructure</h3><span class="pill completed">Completed</span></header>
   <p><strong>Goal:</strong> Turn the XML header bytes into a navigable, typed element tree using
   <code>XMLParser</code>, and validate the <code>&lt;xisf version="1.0"&gt;</code> root.</p>
   <div class="field-label">Tasks</div>
@@ -339,9 +339,21 @@ practical implementation is available.</p>
     <li>Wire <code>XISFFile</code> to parse the header into the element tree on init; expose discovered top-level child element kinds.</li>
     <li>Unit tests: well-formed header, wrong root, missing version, malformed XML, namespaced vs. non-namespaced.</li>
   </ul>
-  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
-  <div class="field-label">Completed</div><p class="placeholder">—</p>
-  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Status</div><p><span class="pill completed">Completed</span></p>
+  <div class="field-label">Completed</div><p>2026-06-30</p>
+  <div class="field-label">Implementation notes</div>
+  <p>Implemented with TDD. New internal infrastructure in <code>SwiftXISF/Core/</code>: <code>XISFElement</code> (the element-tree node) and <code>XISFXMLParser</code> (the <code>XMLParser</code>-based walker), with <code>Test_XISFXMLParser</code> and additional <code>Test_XISFFile</code> cases.</p>
+  <ul>
+    <li><strong>Decision — namespace handling (confirmed with user: "robust and standard compliant — the XML standard").</strong> XML Namespaces are part of the XML standard, so the walker is <strong>namespace-aware</strong>: <code>XMLParser.shouldProcessNamespaces = true</code>. Elements are matched by their <em>local name</em> (so a default-namespaced <code>&lt;Image&gt;</code> and a prefixed <code>&lt;x:Image&gt;</code> are the same element), with the namespace URI carried separately on each node. Names are compared case-sensitively, as XML requires.</li>
+    <li><strong><code>XISFElement</code></strong> (internal): <code>name</code> (local), <code>namespaceURI: String?</code>, <code>attributes: [String:String]</code> (keyed by local name), ordered <code>children</code>, accumulated <code>content</code> (+ <code>trimmedContent</code>), and a <code>children(named:)</code> helper. Not part of the public API.</li>
+    <li><strong><code>XISFXMLParser</code></strong> (internal): <code>NSObject</code>/<code>XMLParserDelegate</code> with a static <code>parse(_:) throws -&gt; XISFElement</code> that builds the tree via a stack. Well-formedness failures and any delegate <code>parseErrorOccurred</code> surface as <code>XISFError.malformedXML</code>; an empty/rootless document is also rejected.</li>
+    <li><strong>Security:</strong> external-entity resolution is left disabled (the <code>XMLParser</code> default), so the parser never reads files outside the header (avoids XXE) — a standards/security best practice, noted in the doc comment.</li>
+    <li><strong>TDD discovery:</strong> with namespace processing on, <code>XMLParser</code> reports a no-namespace element's URI as an empty string rather than <code>nil</code>. Normalized that to <code>nil</code> in the walker so "no namespace" has a single representation; a dedicated test pins this.</li>
+    <li><strong><code>XISFFile</code> wiring:</strong> <code>init</code> now parses <code>headerXML</code> into the tree and validates the root via a private <code>validateRoot</code>. Added <code>public static let namespace = "http://www.pixinsight.com/xisf"</code>, stored the tree as <code>internal let root</code>, and exposed <code>public var headerElementNames: [String]</code> (the local names of the root's direct children).</li>
+    <li><strong>Root validation rules:</strong> local name must be <code>xisf</code> (else <code>invalidElement</code>); the root must be in the XISF namespace <em>or</em> in no namespace (tolerating headers that omit the declaration), while a <em>foreign</em> namespace is rejected; <code>version</code> must be <code>1.0</code> under strict, tolerated (missing or different) under <code>.lenient</code> (<code>allowSpecDeviations</code>).</li>
+    <li><strong>Xcode project sync:</strong> added <code>XISFElement.swift</code> and <code>XISFXMLParser.swift</code> (source) and <code>XISFXMLParser.swift</code> (test) to the <code>Core</code> groups and build phases.</li>
+    <li><strong>Verification:</strong> <code>swift test</code> → 40 tests pass; <code>xcodebuild … build test</code> → <code>** TEST SUCCEEDED **</code>, 40 tests pass. New tests cover: element-tree building, nested children, default-namespace and prefixed-namespace resolution to local names, no-namespace reporting, malformed XML; plus top-level element names, wrong root, missing version (strict reject / lenient tolerate), foreign namespace rejection, non-namespaced header, and malformed header XML.</li>
+  </ul>
   <div class="field-label">Review comments</div><p class="placeholder">—</p>
 </div>
 

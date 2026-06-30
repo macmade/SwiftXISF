@@ -53,11 +53,24 @@ public class XISFFile: CustomStringConvertible
     /// The XML header begins immediately after, at this offset.
     public static let preambleSize = 16
 
+    /// The XML namespace declared by the root `xisf` element.
+    public static let namespace = "http://www.pixinsight.com/xisf"
+
     /// The raw UTF-8 XML header, as a string.
     ///
-    /// This is the verbatim header text; parsing it into a typed element tree is
-    /// performed by later stages.
+    /// This is the verbatim header text; the parsed element tree is available
+    /// internally as ``root``.
     public let headerXML: String
+
+    /// The root `xisf` element of the parsed XML header.
+    internal let root: XISFElement
+
+    /// The local names of the root's direct child elements, in document order
+    /// (for example `Image`, `Property`, `FITSKeyword`).
+    public var headerElementNames: [ String ]
+    {
+        self.root.children.map { $0.name }
+    }
 
     /// Reads and parses an XISF file from a file URL.
     ///
@@ -100,7 +113,8 @@ public class XISFFile: CustomStringConvertible
     /// Parses an XISF file from raw bytes.
     ///
     /// Validates the binary preamble (signature, header-length field and
-    /// reserved field) and slices out the UTF-8 XML header.
+    /// reserved field), slices out the UTF-8 XML header, parses it into an
+    /// element tree, and validates the `xisf` root element.
     ///
     /// - Parameters:
     ///   - data: The complete file contents.
@@ -108,9 +122,10 @@ public class XISFFile: CustomStringConvertible
     /// - Throws: ``XISFError/dataError(reason:)`` if the data is empty,
     ///   ``XISFError/invalidSignature(reason:)`` if the signature or reserved
     ///   field is invalid, ``XISFError/invalidHeaderLength(reason:)`` if the
-    ///   header-length field is zero or extends past the end of the file, or
+    ///   header-length field is zero or extends past the end of the file,
     ///   ``XISFError/malformedXML(reason:)`` if the header bytes are not valid
-    ///   UTF-8.
+    ///   UTF-8 or not well-formed XML, or ``XISFError/invalidElement(reason:)``
+    ///   if the root element is not a valid `xisf` element.
     public init( data: Data, options: XISFParsingOptions ) throws
     {
         guard data.isEmpty == false
@@ -160,7 +175,50 @@ public class XISFFile: CustomStringConvertible
             throw XISFError.malformedXML( reason: "XML header is not valid UTF-8" )
         }
 
+        let root = try XISFXMLParser.parse( headerXML )
+
+        try XISFFile.validateRoot( root, options: options )
+
         self.headerXML = headerXML
+        self.root      = root
+    }
+
+    /// Validates the root element of a parsed XISF header.
+    ///
+    /// The root must be an `xisf` element in the XISF namespace (or in no
+    /// namespace, tolerating headers that omit the declaration); an element in
+    /// any other namespace is rejected. The `version` attribute must be `1.0`
+    /// unless ``XISFParsingOptions/allowSpecDeviations`` is set, which tolerates
+    /// a missing or different version.
+    ///
+    /// - Parameters:
+    ///   - root: The root element to validate.
+    ///   - options: The parsing options to apply.
+    /// - Throws: ``XISFError/invalidElement(reason:)`` if the root is not a
+    ///   valid `xisf` element.
+    private static func validateRoot( _ root: XISFElement, options: XISFParsingOptions ) throws
+    {
+        guard root.name == "xisf"
+        else
+        {
+            throw XISFError.invalidElement( reason: "Expected root element 'xisf' but found '\( root.name )'" )
+        }
+
+        if let namespace = root.namespaceURI, namespace.isEmpty == false, namespace != XISFFile.namespace
+        {
+            throw XISFError.invalidElement( reason: "Root element 'xisf' is in an unexpected namespace: \( namespace )" )
+        }
+
+        if options.contains( .allowSpecDeviations ) == false
+        {
+            guard root.attributes[ "version" ] == "1.0"
+            else
+            {
+                let found = root.attributes[ "version" ].map { "'\( $0 )'" } ?? "no version attribute"
+
+                throw XISFError.invalidElement( reason: "Expected XISF version '1.0' but found \( found )" )
+            }
+        }
     }
 
     /// A multi-line, human-readable summary of the file.
