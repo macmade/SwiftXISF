@@ -23,6 +23,10 @@
 		AB000000000000000000001E /* XISFElement.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000001D /* XISFElement.swift */; };
 		AB0000000000000000000020 /* XISFXMLParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000001F /* XISFXMLParser.swift */; };
 		AB0000000000000000000022 /* XISFXMLParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000021 /* XISFXMLParser.swift */; };
+		AB0000000000000000000025 /* XISFPropertyType.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000024 /* XISFPropertyType.swift */; };
+		AB0000000000000000000027 /* XISFValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000026 /* XISFValue.swift */; };
+		AB000000000000000000002A /* XISFPropertyType.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000029 /* XISFPropertyType.swift */; };
+		AB000000000000000000002C /* XISFValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000002B /* XISFValue.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -102,6 +106,10 @@
 		AB000000000000000000001D /* XISFElement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFElement.swift; sourceTree = "<group>"; };
 		AB000000000000000000001F /* XISFXMLParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFXMLParser.swift; sourceTree = "<group>"; };
 		AB0000000000000000000021 /* XISFXMLParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFXMLParser.swift; sourceTree = "<group>"; };
+		AB0000000000000000000024 /* XISFPropertyType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFPropertyType.swift; sourceTree = "<group>"; };
+		AB0000000000000000000026 /* XISFValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFValue.swift; sourceTree = "<group>"; };
+		AB0000000000000000000029 /* XISFPropertyType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFPropertyType.swift; sourceTree = "<group>"; };
+		AB000000000000000000002B /* XISFValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFValue.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -275,6 +283,7 @@
 			isa = PBXGroup;
 			children = (
 				AB0000000000000000000001 /* Core */,
+				AB0000000000000000000023 /* Model */,
 				AB000000000000000000000B /* Extensions */,
 			);
 			path = SwiftXISF;
@@ -284,9 +293,28 @@
 			isa = PBXGroup;
 			children = (
 				AB0000000000000000000006 /* Core */,
+				AB0000000000000000000028 /* Model */,
 				AB0000000000000000000012 /* Extensions */,
 			);
 			path = SwiftXISFTests;
+			sourceTree = "<group>";
+		};
+		AB0000000000000000000023 /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				AB0000000000000000000024 /* XISFPropertyType.swift */,
+				AB0000000000000000000026 /* XISFValue.swift */,
+			);
+			path = Model;
+			sourceTree = "<group>";
+		};
+		AB0000000000000000000028 /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				AB0000000000000000000029 /* XISFPropertyType.swift */,
+				AB000000000000000000002B /* XISFValue.swift */,
+			);
+			path = Model;
 			sourceTree = "<group>";
 		};
 		AB0000000000000000000001 /* Core */ = {
@@ -448,6 +476,8 @@
 				AB000000000000000000001A /* XISFFile.swift in Sources */,
 				AB000000000000000000001E /* XISFElement.swift in Sources */,
 				AB0000000000000000000020 /* XISFXMLParser.swift in Sources */,
+				AB0000000000000000000025 /* XISFPropertyType.swift in Sources */,
+				AB0000000000000000000027 /* XISFValue.swift in Sources */,
 				AB0000000000000000000003 /* XISFError.swift in Sources */,
 				AB0000000000000000000005 /* XISFParsingOptions.swift in Sources */,
 				AB000000000000000000000D /* Data.swift in Sources */,
@@ -462,6 +492,8 @@
 			files = (
 				AB000000000000000000001C /* XISFFile.swift in Sources */,
 				AB0000000000000000000022 /* XISFXMLParser.swift in Sources */,
+				AB000000000000000000002A /* XISFPropertyType.swift in Sources */,
+				AB000000000000000000002C /* XISFValue.swift in Sources */,
 				AB0000000000000000000008 /* XISFError.swift in Sources */,
 				AB000000000000000000000A /* XISFParsingOptions.swift in Sources */,
 				AB0000000000000000000014 /* Data.swift in Sources */,

@@ -361,7 +361,7 @@ practical implementation is available.</p>
 <div class="phase-label">Phase 3 · Value model, properties &amp; keywords</div>
 
 <div class="milestone">
-  <header><span class="num">M5</span><h3>Typed value model</h3><span class="pill notstarted">Not started</span></header>
+  <header><span class="num">M5</span><h3>Typed value model</h3><span class="pill completed">Completed</span></header>
   <p><strong>Goal:</strong> Model XISF property/value types as a typed enum — the SwiftXISF counterpart to
   <code>FITSValue</code> — covering scalar types now and reserving cases for vector/matrix (filled in at M9).</p>
   <div class="field-label">Tasks</div>
@@ -371,9 +371,21 @@ practical implementation is available.</p>
     <li>Scalar parsing from a <code>value="…"</code> attribute string for each scalar type (including <code>TimePoint</code> ISO-8601 and complex <code>(re,im)</code> forms — verify exact syntax against the spec during implementation).</li>
     <li>Unit tests for every scalar type, including overflow, malformed values, and <code>Kind</code>/accessor behavior.</li>
   </ul>
-  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
-  <div class="field-label">Completed</div><p class="placeholder">—</p>
-  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Status</div><p><span class="pill completed">Completed</span></p>
+  <div class="field-label">Completed</div><p>2026-06-30</p>
+  <div class="field-label">Implementation notes</div>
+  <p>Implemented with TDD. New types in <code>SwiftXISF/Model/</code>: <code>XISFPropertyType</code> and <code>XISFValue</code>, with <code>Test_XISFPropertyType</code> and <code>Test_XISFValue</code> in <code>SwiftXISFTests/Model/</code>.</p>
+  <ul>
+    <li><strong>Spec verification (not memory).</strong> The PixInsight spec page 403s to automated fetches, so the exact type strings and value formats were verified against two open-source XISF implementations: <a href="https://github.com/nrackwit/libXISF">libXISF</a> (a complete C++ XISF 1.0 reader/writer — its <code>Variant::Type</code> enum and string tables) and <a href="https://github.com/sergio-dr/xisf">sergio-dr/xisf</a> (a Python decoder). Cross-checked and consistent.</li>
+    <li><strong>Plan correction — no 128-bit complex.</strong> The plan's Appendix B shorthand listed <code>Complex32/64/128</code> and <code>C{32,64,128}Vector</code>. <strong>XISF 1.0 has no 128-bit complex (nor 128-bit scalar) type</strong> — only <code>Complex32</code>/<code>Complex64</code> (scalars) and <code>C32</code>/<code>C64</code> (vector/matrix). Implemented the verified set; a test asserts <code>Complex128</code>/<code>C128Vector</code>/<code>Int128</code>/<code>Float128</code> are unrecognized.</li>
+    <li><strong><code>XISFPropertyType</code></strong>: <code>String</code>-raw-valued enum whose raw values are the exact spec type strings — <code>Boolean</code>, <code>Int8/16/32/64</code>, <code>UInt8/16/32/64</code>, <code>Float32/64</code>, <code>Complex32/64</code>, <code>String</code>, <code>TimePoint</code>, <code>ByteArray</code>, the <code>I8…C64 Vector</code> family, and the corresponding <code>Matrix</code> family. <code>CaseIterable, Sendable</code>. A nested <code>Category</code> (<code>scalar</code>/<code>complex</code>/<code>string</code>/<code>timePoint</code>/<code>vector</code>/<code>matrix</code>) classifies how each type's value is carried. Note: <code>Complex32</code> = two 32-bit float components, <code>Complex64</code> = two 64-bit (the digits are the per-component width).</li>
+    <li><strong><code>XISFValue</code></strong>: <code>public enum … : Equatable, Hashable, Sendable</code>, mirroring <code>FITSValue</code>. Cases <code>boolean</code>, <code>integer(Int64)</code> (all signed widths, widened), <code>unsignedInteger(UInt64)</code> (all unsigned widths; needs its own case since <code>UInt64.max</code> exceeds <code>Int64</code>), <code>float(Double)</code>, <code>complex(real:imaginary:)</code>, <code>string</code>, <code>timePoint(Date)</code>; nested <code>Kind</code> with descriptions; per-case accessors. <code>NaN</code> is treated equal to <code>NaN</code> in <code>==</code> (for floats and either complex component) with <code>hash(into:)</code> kept consistent, exactly as <code>FITSValue</code> does.</li>
+    <li><strong>Scalar parsing — <code>XISFValue.value(fromAttribute:type:)</code>:</strong> trims surrounding whitespace, then by type: Boolean accepts <code>0/1/true/false</code> (words case-insensitive); integers parse decimal and are <strong>range-checked against the declared width</strong> via <code>T(String)</code> (so <code>300</code> as <code>Int8</code>, or a value overflowing <code>Int64</code>, throws); floats via <code>Double(_:)</code> (accepts scientific notation and <code>nan</code>); complex as <code>(real,imaginary)</code> split on the first comma with each component parsed as <code>Double</code>; time points as ISO 8601 (both with and without fractional seconds — see below). Failures throw <code>XISFError.invalidElement</code>. The value-attribute parser rejects <code>String</code> (carried as element content, handled in M6) and vector/matrix/<code>ByteArray</code> (carried in data blocks).</li>
+    <li><strong>Decision — TimePoint.</strong> The spec leaves the time representation <em>implementation-defined</em>; PixInsight/libXISF use ISO 8601 (libXISF parses <code>%Y-%m-%dT%H:%M:%SZ</code>). I parse with <code>ISO8601DateFormatter</code>, trying the fractional-seconds form first then the whole-second form, so both <code>…:05Z</code> and <code>…:05.500Z</code> work. Formatters are created locally (not stored statically) to stay Swift 6 concurrency-clean, since <code>ISO8601DateFormatter</code> is not <code>Sendable</code>.</li>
+    <li><strong>Scope:</strong> per the M5 goal, only scalar (value-attribute) values are parsed now; vector/matrix data-block-backed values are completed in M10. <code>XISFPropertyType</code> already enumerates the vector/matrix families so M10 can build on it.</li>
+    <li><strong>Xcode project sync:</strong> added <code>Model</code> groups and the two source + two test files to the project and build phases.</li>
+    <li><strong>Verification:</strong> <code>swift test</code> → 58 tests pass; <code>xcodebuild … build test</code> → <code>** TEST SUCCEEDED **</code>, 58 tests pass.</li>
+  </ul>
   <div class="field-label">Review comments</div><p class="placeholder">—</p>
 </div>
 
