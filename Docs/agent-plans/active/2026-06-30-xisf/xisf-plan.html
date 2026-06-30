@@ -390,7 +390,7 @@ practical implementation is available.</p>
 </div>
 
 <div class="milestone">
-  <header><span class="num">M6</span><h3>Property &amp; FITSKeyword elements</h3><span class="pill notstarted">Not started</span></header>
+  <header><span class="num">M6</span><h3>Property &amp; FITSKeyword elements</h3><span class="pill completed">Completed</span></header>
   <p><strong>Goal:</strong> Parse top-level <code>&lt;Property&gt;</code> (scalar + inline string) and
   <code>&lt;FITSKeyword&gt;</code> elements — the SwiftXISF counterparts to <code>FITSProperty</code> — and
   expose them on <code>XISFFile</code>.</p>
@@ -401,9 +401,22 @@ practical implementation is available.</p>
     <li>Expose on <code>XISFFile</code>: <code>public var properties: [XISFProperty]</code>, <code>public var keywords: [XISFFITSKeyword]</code>, and a keyed subscript paralleling SwiftFITS.</li>
     <li>Unit tests: scalar properties of each type, inline-string property, duplicate ids, FITS keyword variants.</li>
   </ul>
-  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
-  <div class="field-label">Completed</div><p class="placeholder">—</p>
-  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Status</div><p><span class="pill completed">Completed</span></p>
+  <div class="field-label">Completed</div><p>2026-06-30</p>
+  <div class="field-label">Implementation notes</div>
+  <p>Implemented with TDD. New types in <code>SwiftXISF/Model/</code>: <code>XISFProperty</code> and <code>XISFFITSKeyword</code>, with their tests in <code>SwiftXISFTests/Model/</code> and additional <code>Test_XISFFile</code> cases.</p>
+  <ul>
+    <li><strong>Spec verification (libXISF):</strong> confirmed the element shapes against libXISF — <code>&lt;Property id type value comment format&gt;</code> (scalar/complex/timePoint in the <code>value</code> attribute; <strong>String value is the element's character content</strong>; vector/matrix via a data block <code>location</code>) and <code>&lt;FITSKeyword name value comment&gt;</code> (empty <code>value</code> for HISTORY/COMMENT).</li>
+    <li><strong>Decision — structs, not classes.</strong> <code>XISFProperty</code> and <code>XISFFITSKeyword</code> are <code>public struct … : Equatable, Sendable, CustomStringConvertible</code>. Unlike <code>FITSProperty</code> (a class that mutates via <code>merge</code>), these are immutable parsed records with no identity, so value types give clean value semantics and free <code>Sendable</code>. <strong>Flag for review</strong> if you'd rather mirror SwiftFITS's class.</li>
+    <li><strong><code>XISFProperty</code></strong>: <code>id</code>, <code>type</code> (<code>XISFPropertyType</code>), <code>value</code> (<code>XISFValue</code>), optional <code>comment</code>/<code>format</code>. Scalar/complex/time-point values are parsed from the <code>value</code> attribute via <code>XISFValue.value(fromAttribute:type:)</code>; a <code>String</code> value is taken from the element's character content (verbatim, matching libXISF — not trimmed). The element-based init is <code>internal</code> (it takes the internal <code>XISFElement</code>); consumers read properties off <code>XISFFile</code>.</li>
+    <li><strong>Property id validation:</strong> XISF property ids are hierarchical, <em>colon-separated</em> (e.g. <code>Observation:Time:Start</code>), not simple identifiers. Under strict parsing each colon-component must be a valid <code>[_a-zA-Z][_a-zA-Z0-9]*</code> identifier (reusing the M2 <code>isValidXISFIdentifier</code>); <code>.lenient</code> only requires a non-empty id.</li>
+    <li><strong><code>XISFFITSKeyword</code></strong>: <code>name</code>, optional <code>value</code> (raw FITS-formatted string; empty → <code>nil</code> for HISTORY/COMMENT), optional <code>comment</code>. Under strict parsing the name must be ≤ 8 characters from <code>[A-Z0-9_-]</code>; <code>.lenient</code> tolerates longer/lowercase names. The FITS value is kept verbatim as a string (XISF stores it pre-formatted), not re-typed.</li>
+    <li><strong><code>XISFFile</code> wiring:</strong> <code>init</code> now parses the root's direct <code>&lt;Property&gt;</code> and <code>&lt;FITSKeyword&gt;</code> children into stored <code>public let properties</code> / <code>public let keywords</code>. Added a keyed <code>subscript(id:) -&gt; XISFProperty?</code> (first match, paralleling SwiftFITS's keyword subscript) and <code>keywords(named:) -&gt; [XISFFITSKeyword]</code> (all matches, since HISTORY/COMMENT repeat).</li>
+    <li><strong>Deferral to M10:</strong> vector/matrix properties (and string values carried in a data block via <code>location</code>) are data-block-backed; <code>parseProperties</code> skips them for now (a test pins that a <code>UI8Vector</code> property is skipped while a sibling scalar is kept). Under <code>.lenient</code>, a property with a missing/unknown type is skipped rather than rejected.</li>
+    <li><strong>Test fixture update:</strong> the existing <code>exposesTopLevelElementNames</code> test used empty <code>&lt;Property/&gt;</code>/<code>&lt;FITSKeyword/&gt;</code>, which are now invalid under the new parsing; updated it to well-formed elements (behavior changed by this milestone).</li>
+    <li><strong>Xcode project sync:</strong> added the two source + two test files to the <code>Model</code> groups and build phases.</li>
+    <li><strong>Verification:</strong> <code>swift test</code> → 74 tests pass; <code>xcodebuild … build test</code> → <code>** TEST SUCCEEDED **</code>, 74 tests pass.</li>
+  </ul>
   <div class="field-label">Review comments</div><p class="placeholder">—</p>
 </div>
 

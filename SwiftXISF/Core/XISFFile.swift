@@ -72,6 +72,37 @@ public class XISFFile: CustomStringConvertible
         self.root.children.map { $0.name }
     }
 
+    /// The unit-level (top-level) properties, in document order.
+    ///
+    /// Vector- and matrix-valued properties, whose values are carried in data
+    /// blocks, are completed once the data-block pipeline exists; they are not
+    /// yet included here.
+    public let properties: [ XISFProperty ]
+
+    /// The unit-level (top-level) embedded FITS keywords, in document order.
+    public let keywords: [ XISFFITSKeyword ]
+
+    /// The first property whose identifier matches, or `nil` if none does.
+    ///
+    /// - Parameter id: The property identifier to look up.
+    /// - Returns: The first matching property, or `nil`.
+    public subscript( id: String ) -> XISFProperty?
+    {
+        self.properties.first { $0.id == id }
+    }
+
+    /// The embedded FITS keywords with a given name, in document order.
+    ///
+    /// A name may appear more than once (notably `HISTORY` and `COMMENT`), so
+    /// this returns every match.
+    ///
+    /// - Parameter name: The keyword name to look up.
+    /// - Returns: The matching keywords, in document order.
+    public func keywords( named name: String ) -> [ XISFFITSKeyword ]
+    {
+        self.keywords.filter { $0.name == name }
+    }
+
     /// Reads and parses an XISF file from a file URL.
     ///
     /// - Parameters:
@@ -179,8 +210,57 @@ public class XISFFile: CustomStringConvertible
 
         try XISFFile.validateRoot( root, options: options )
 
-        self.headerXML = headerXML
-        self.root      = root
+        self.headerXML  = headerXML
+        self.root       = root
+        self.properties = try XISFFile.parseProperties( from: root, options: options )
+        self.keywords   = try root.children( named: "FITSKeyword" ).map { try XISFFITSKeyword( element: $0, options: options ) }
+    }
+
+    /// Parses the direct-child `<Property>` elements of an element.
+    ///
+    /// Vector- and matrix-valued properties (and string values carried in data
+    /// blocks) are data-block-backed and completed in a later milestone, so they
+    /// are skipped here. Under strict parsing a property with a missing or
+    /// unknown type is an error; ``XISFParsingOptions/allowSpecDeviations`` skips
+    /// it instead.
+    ///
+    /// - Parameters:
+    ///   - element: The element whose `<Property>` children to parse.
+    ///   - options: The parsing options to apply.
+    /// - Returns: The parsed properties, in document order.
+    /// - Throws: Any ``XISFError`` raised while parsing a property.
+    private static func parseProperties( from element: XISFElement, options: XISFParsingOptions ) throws -> [ XISFProperty ]
+    {
+        try element.children( named: "Property" ).compactMap
+        {
+            child in
+
+            guard let typeString = child.attributes[ "type" ], let type = XISFPropertyType( rawValue: typeString )
+            else
+            {
+                if options.contains( .allowSpecDeviations )
+                {
+                    return nil
+                }
+
+                throw XISFError.invalidElement( reason: "Property has a missing or unknown type: '\( child.attributes[ "type" ] ?? "" )'" )
+            }
+
+            // Data-block-backed values are completed once the data-block
+            // pipeline exists: vectors and matrices always, and strings when
+            // carried in a data block rather than inline.
+            if type.category == .vector || type.category == .matrix
+            {
+                return nil
+            }
+
+            if type.category == .string, child.attributes[ "location" ] != nil
+            {
+                return nil
+            }
+
+            return try XISFProperty( element: child, options: options )
+        }
     }
 
     /// Validates the root element of a parsed XISF header.

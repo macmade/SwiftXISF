@@ -144,10 +144,37 @@ struct Test_XISFFile
     @Test
     func exposesTopLevelElementNames() async throws
     {
-        let xml  = "<xisf version=\"1.0\" xmlns=\"http://www.pixinsight.com/xisf\"><Image/><Property/><FITSKeyword/></xisf>"
+        let xml  = "<xisf version=\"1.0\" xmlns=\"http://www.pixinsight.com/xisf\"><Image/><Property id=\"a\" type=\"Int32\" value=\"1\"/><FITSKeyword name=\"A\" value=\"1\"/></xisf>"
         let file = try XISFFile( data: Test_XISFFile.monolithicFile( xml: xml ), options: .strict )
 
         #expect( file.headerElementNames == [ "Image", "Property", "FITSKeyword" ] )
+    }
+
+    @Test
+    func exposesPropertiesAndKeywords() async throws
+    {
+        let xml  = "<xisf version=\"1.0\" xmlns=\"http://www.pixinsight.com/xisf\"><Property id=\"A\" type=\"Int32\" value=\"1\"/><Property id=\"B\" type=\"String\">hi</Property><FITSKeyword name=\"EXPTIME\" value=\"10\" comment=\"exp\"/><FITSKeyword name=\"HISTORY\" value=\"\" comment=\"x\"/></xisf>"
+        let file = try XISFFile( data: Test_XISFFile.monolithicFile( xml: xml ), options: .strict )
+
+        #expect( file.properties.count       == 2 )
+        #expect( file[ "A" ]?.value          == .integer( 1 ) )
+        #expect( file[ "B" ]?.value          == .string( "hi" ) )
+        #expect( file[ "missing" ]           == nil )
+        #expect( file.keywords.count         == 2 )
+        #expect( file.keywords( named: "EXPTIME" ).count == 1 )
+        #expect( file.keywords( named: "EXPTIME" ).first?.value == "10" )
+    }
+
+    @Test
+    func skipsDataBlockBackedProperties() async throws
+    {
+        let xml  = "<xisf version=\"1.0\" xmlns=\"http://www.pixinsight.com/xisf\"><Property id=\"V\" type=\"UI8Vector\" location=\"inline:base64\">AAEC</Property><Property id=\"S\" type=\"Int32\" value=\"5\"/></xisf>"
+        let file = try XISFFile( data: Test_XISFFile.monolithicFile( xml: xml ), options: .strict )
+
+        // The vector property is data-block-backed and completed in a later milestone.
+        #expect( file.properties.count == 1 )
+        #expect( file[ "S" ]?.value    == .integer( 5 ) )
+        #expect( file[ "V" ]           == nil )
     }
 
     @Test
