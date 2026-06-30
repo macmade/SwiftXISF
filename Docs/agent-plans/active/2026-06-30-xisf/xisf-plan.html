@@ -293,7 +293,7 @@ practical implementation is available.</p>
 <div class="phase-label">Phase 2 · Monolithic container &amp; XML header</div>
 
 <div class="milestone">
-  <header><span class="num">M3</span><h3>Monolithic file container</h3><span class="pill notstarted">Not started</span></header>
+  <header><span class="num">M3</span><h3>Monolithic file container</h3><span class="pill completed">Completed</span></header>
   <p><strong>Goal:</strong> Parse the binary preamble and locate the XML header and attached-block region —
   the <code>XISFFile</code> entry point skeleton, analogous to opening a <code>FITSFile</code>.</p>
   <div class="field-label">Tasks</div>
@@ -305,10 +305,26 @@ practical implementation is available.</p>
     <li>Expose the raw XML header string (e.g. <code>public var headerXML: String</code>) and a <code>maxHeaderSize</code>/signature constant, paralleling <code>FITSFile.blockSize</code>.</li>
     <li>Unit tests: valid preamble, bad signature, truncated file, non-zero reserved, header length past EOF.</li>
   </ul>
-  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
-  <div class="field-label">Completed</div><p class="placeholder">—</p>
-  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
-  <div class="field-label">Review comments</div><p class="placeholder">—</p>
+  <div class="field-label">Status</div><p><span class="pill completed">Completed</span></p>
+  <div class="field-label">Completed</div><p>2026-06-30</p>
+  <div class="field-label">Implementation notes</div>
+  <p>Implemented with TDD (tests written first, watched fail, then implemented to green). <code>XISFFile</code> lives in <code>SwiftXISF/Core/</code>, mirrored by <code>SwiftXISFTests/Core/XISFFile.swift</code>.</p>
+  <ul>
+    <li><strong><code>XISFFile</code></strong>: <code>public class … : CustomStringConvertible</code>, structured like <code>FITSFile</code>. <code>public convenience init(url:options:)</code> reads the file with <code>.mappedIfSafe</code> and classifies a read failure <em>after</em> the attempt (no TOCTOU gap) into <code>invalidFileURL</code> vs <code>cannotReadFile</code>, exactly as <code>FITSFile</code> does. <code>public init(data:options:)</code> validates the preamble and slices the header.</li>
+    <li><strong>Preamble validation order:</strong> empty → <code>dataError</code>; signature mismatch (or a file too short to hold the 8-byte marker) → <code>invalidSignature</code>; file shorter than the 16-byte preamble → <code>invalidHeaderLength</code>; non-zero reserved field (offset 12, read little-endian) → <code>invalidSignature</code> unless lenient; zero header length → <code>invalidHeaderLength</code>; header extending past EOF → <code>invalidHeaderLength</code>; header bytes not valid UTF-8 → <code>malformedXML</code>.</li>
+    <li><strong>Exposed state:</strong> <code>public let headerXML: String</code> only — the verbatim UTF-8 header text (typed XML parsing is M4). <em>(Revised after review: an earlier draft also stored <code>public let data: Data</code>; removed — see Review comments.)</em></li>
+    <li><strong>Constants:</strong> <code>public static let signature = "XISF0100"</code> and <code>public static let preambleSize = 16</code> (parallels <code>FITSFile.blockSize</code>).</li>
+    <li><strong>Decision — no <code>maxHeaderSize</code> constant:</strong> the plan mentioned a "maxHeaderSize/signature constant", but the verified XISF 1.0 facts define only a 65-byte <em>minimum</em> header, no maximum. Since the header is sliced from already-resident bytes (no allocation), an over-large length simply fails the past-EOF bounds check — there is no DoS surface to guard. I therefore exposed the signature/preamble constants and did <em>not</em> invent an arbitrary maximum that could reject valid files. Flag for review.</li>
+    <li><strong>Decision — reserved field classification:</strong> a non-zero reserved field is reported via <code>invalidSignature</code> (its doc comment was broadened to cover the whole binary preamble: marker + reserved field), and it is tolerated under <code>.lenient</code> (<code>allowSpecDeviations</code>) since it is a harmless deviation. Both behaviors are covered by tests.</li>
+    <li><strong>Decision — header-length minimum:</strong> M3 enforces only <code>headerLength &gt; 0</code>; the spec's 65-byte minimum is left to be enforced naturally by the XML parsing in M4 rather than as a magic number here.</li>
+    <li><strong>Xcode project sync:</strong> added <code>XISFFile.swift</code> source + test file references and build-phase entries to the <code>Core</code> groups.</li>
+    <li><strong>Verification:</strong> <code>swift test</code> → 27 tests pass; <code>xcodebuild … build test</code> → <code>** TEST SUCCEEDED **</code>, 27 tests pass. Tests cover valid preamble, header parsing independent of trailing attachment bytes, bad signature, empty data, truncated file, non-zero reserved (strict reject / lenient tolerate), header length past EOF, zero header length, and URL read / missing URL.</li>
+  </ul>
+  <div class="field-label">Review comments</div>
+  <ul>
+    <li><strong>Don't keep a top-level whole-file <code>data</code> buffer — SwiftFITS doesn't.</strong> Verified by reading the source: <code>FITSBlock</code> stores <code>public let data: Data</code> (each block keeps its own bytes), <code>FITSFile</code> stores <code>sections</code> (which hold the blocks), and <code>FITSFile.data</code> is a <em>computed</em> property that reconstructs the file from those sections. There is no separate whole-file field. The <code>public let data: Data</code> I put on <code>XISFFile</code> is exactly that redundant buffer, and it presupposes lazy post-init attachment resolution.</li>
+    <li><strong>Resolution.</strong> Adopt the SwiftFITS model: parse eagerly inside <code>init(data:)</code> so each <code>XISFDataBlock</code> (M7) holds its own resolved byte slice (cheap, mmap/COW-backed), and let any whole-file <code>data</code> be computed if a later milestone needs it. For M3: removed <code>public let data: Data</code> from <code>XISFFile</code> (keeping only <code>headerXML</code>), removed the now-premature <code>retainsAttachmentRegionWithAbsoluteOffsets</code> test, and changed <code>readsFromURL</code> to assert on <code>headerXML</code>. The raw bytes remain reachable as the <code>init</code>-local for when M7/M10 add block/image parsing.</li>
+  </ul>
 </div>
 
 <div class="milestone">

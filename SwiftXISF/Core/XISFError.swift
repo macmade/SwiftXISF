@@ -34,7 +34,8 @@ public enum XISFError: LocalizedError, CustomStringConvertible, Sendable
     /// The file at the given URL exists but its contents could not be read.
     case cannotReadFile( url: URL )
 
-    /// The monolithic-file signature is not the expected `XISF0100` marker;
+    /// The monolithic-file binary preamble is invalid — either the signature is
+    /// not the expected `XISF0100` marker, or the reserved field is non-zero;
     /// `reason` describes the specific problem.
     case invalidSignature( reason: String )
 
