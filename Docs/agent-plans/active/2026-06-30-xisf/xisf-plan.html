@@ -1,0 +1,602 @@
+<meta charset="utf-8">
+<title>SwiftXISF Implementation Plan</title>
+<style>
+  :root {
+    --bg:        #0f1115;
+    --bg-card:   #171a21;
+    --bg-soft:   #1d212b;
+    --border:    #2a2f3a;
+    --text:      #d7dce4;
+    --text-dim:  #97a0b0;
+    --accent:    #6db1ff;
+    --code-bg:   #11141a;
+    --green:     #1f7a4d;
+    --green-fg:  #b6f0cf;
+    --amber:     #8a6d1f;
+    --amber-fg:  #ffe6a3;
+    --gray:      #3a3f4b;
+    --gray-fg:   #c2c8d2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2.2rem clamp(1rem, 4vw, 3.5rem) 5rem;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 1080px;
+    margin-inline: auto;
+  }
+  h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 .4rem; letter-spacing: -.01em; }
+  h2 { font-size: 1.4rem; margin: 2.6rem 0 1rem; padding-bottom: .4rem; border-bottom: 1px solid var(--border); letter-spacing: -.01em; }
+  h3 { font-size: 1.12rem; margin: 0 0 .2rem; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  p { margin: .55rem 0; }
+  code {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: .08em .38em;
+    font: .86em "SF Mono", ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+    color: #e6c07b;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .9rem 1.1rem;
+    overflow-x: auto;
+  }
+  pre code { background: none; border: 0; padding: 0; color: var(--text); }
+  .meta {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: .25rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    margin: 1.2rem 0 .5rem;
+    font-size: .95rem;
+  }
+  .meta dt { color: var(--text-dim); font-weight: 600; }
+  .meta dd { margin: 0; }
+  .lead { color: var(--text-dim); font-size: 1.05rem; }
+  .qa { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: .4rem 1.2rem; }
+  .qa dt { font-weight: 600; margin-top: .8rem; }
+  .qa dd { margin: .15rem 0 .2rem; color: var(--text-dim); }
+  .qa dd::before { content: "→ "; color: var(--accent); }
+  .note { background: var(--bg-soft); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: .15rem 1.1rem; margin: 1rem 0; }
+  .phase-label { color: var(--accent); font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin: 2.4rem 0 .6rem; }
+  .milestone {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem 1.3rem 1.2rem;
+    margin: 1rem 0;
+  }
+  .milestone > header { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem .8rem; margin-bottom: .5rem; }
+  .milestone > header .num { color: var(--text-dim); font-variant-numeric: tabular-nums; font-weight: 700; }
+  .pill {
+    display: inline-block;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: .2em .7em;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .pill.notstarted { background: var(--gray);  color: var(--gray-fg); }
+  .pill.inprogress { background: var(--amber); color: var(--amber-fg); }
+  .pill.completed  { background: var(--green); color: var(--green-fg); }
+  .field-label { color: var(--text-dim); font-weight: 600; font-size: .82rem; text-transform: uppercase; letter-spacing: .05em; margin: .9rem 0 .25rem; }
+  ul.tasks { list-style: none; padding-left: 0; margin: .3rem 0; }
+  ul.tasks li { padding-left: 1.7rem; position: relative; margin: .28rem 0; }
+  ul.tasks li::before { content: "☐"; position: absolute; left: 0; color: var(--text-dim); }
+  .placeholder { color: var(--text-dim); font-style: italic; }
+  table { border-collapse: collapse; width: 100%; margin: .6rem 0; font-size: .92rem; }
+  th, td { border: 1px solid var(--border); padding: .45rem .7rem; text-align: left; vertical-align: top; }
+  th { background: var(--bg-soft); color: var(--text); }
+  .scroll { overflow-x: auto; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 2rem 0; }
+  details summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+</style>
+
+<h1>SwiftXISF — XISF File Parser Implementation Plan</h1>
+<p class="lead">A read-only Swift parser for PixInsight's XISF format, mirroring the architecture and conventions of <a href="https://github.com/macmade/SwiftFITS.git">SwiftFITS</a>.</p>
+
+<dl class="meta">
+  <dt>Plan title</dt><dd>SwiftXISF — XISF File Parser Implementation Plan</dd>
+  <dt>Generated</dt><dd>2026-06-30</dd>
+  <dt>Source</dt><dd><code>Docs/agent-plans/active/2026-06-30-xisf/xisf.md</code></dd>
+  <dt>Target package</dt><dd><code>SwiftXISF</code> (Swift 6.0, library, no external deps except deferred zstd)</dd>
+</dl>
+
+<h2>Overview</h2>
+<p>
+  The goal is to build <strong>SwiftXISF</strong>, a Swift library that parses
+  <a href="https://pixinsight.com/xisf/">XISF</a> (Extensible Image Serialization Format) files,
+  replicating the architecture, naming, file organization, conventions, and testing approach of the
+  sibling <strong>SwiftFITS</strong> project as closely as possible. The public API should feel like a
+  natural counterpart to SwiftFITS: an <code>XISFFile</code> entry point opened from a <code>URL</code> or
+  <code>Data</code>, exposing parsed images, properties, FITS keywords, and metadata, with image pixel data
+  surfaced as <em>opaque decompressed bytes plus typed geometry/format metadata</em> (interpretation left to
+  the consumer, exactly as SwiftFITS leaves data segments opaque).
+</p>
+<p>
+  Unlike FITS (fixed 2880-byte ASCII blocks), an XISF monolithic file is a small binary preamble + a UTF-8
+  <strong>XML header</strong> describing the unit, followed by attached binary data blocks. The parser therefore
+  splits naturally into three layers: a <strong>monolithic-file container</strong> reader (signature, header
+  length, attached-block region), an <strong>XML header model</strong> (elements parsed with Foundation's
+  <code>XMLParser</code> into typed Swift values), and a <strong>data-block pipeline</strong> (location
+  resolution → decompression + byte un-shuffling → checksum verification → opaque bytes). The plan is staged so
+  that each layer is built and tested before the layers that depend on it, and every milestone is independently
+  reviewable and committable.
+</p>
+<p>
+  Scope decisions (see Q&amp;A): the library is <strong>read-only</strong> (no XISF authoring); pixel data is
+  <strong>opaque bytes + metadata</strong>; and the optional features — <strong>checksum verification</strong>,
+  <strong>external/distributed data blocks</strong>, <strong>color/ICC &amp; thumbnail metadata</strong>, and
+  <strong>zstd</strong> (deferred, as the one external dependency) — are all in scope as their own milestones.
+</p>
+
+<h2>Questions &amp; answers</h2>
+<dl class="qa">
+  <dt>Should SwiftXISF be a read-only parser, or also support writing/encoding XISF files?</dt>
+  <dd><strong>Read-only parser.</strong> Focus on decoding/parsing only, matching the source doc's stated goal.
+      It may still expose raw bytes, but there is no XISF authoring/serialization API.</dd>
+
+  <dt>How should pixel/image data be exposed?</dt>
+  <dd><strong>Opaque bytes + metadata.</strong> Mirror SwiftFITS: expose the fully decompressed and un-shuffled
+      raw block bytes plus typed metadata (geometry, <code>sampleFormat</code>, <code>colorSpace</code>,
+      <code>pixelStorage</code>, <code>byteOrder</code>, bounds). The consumer interprets samples. No decoding
+      into typed Swift sample arrays.</dd>
+
+  <dt>Which optional XISF features should be in scope?</dt>
+  <dd><strong>All four.</strong> (1) <strong>zstd</strong> as a deferred later milestone (introduces an external
+      dependency). (2) <strong>Data-block checksums</strong> (sha-1 / sha-256 / sha-512 and other supported
+      digests). (3) <strong>External/distributed files</strong> (<code>url(...)</code> / <code>path(...)</code>
+      data-block locations). (4) <strong>Color/ICC &amp; thumbnails</strong> (ICC profiles, RGB working space,
+      display functions, thumbnail images).</dd>
+</dl>
+<p class="placeholder">Baseline assumed in every milestone regardless of the above: monolithic files; inline / embedded / attachment-within-file data blocks; multiple images per file; XISF properties; embedded FITS keywords; zlib + lz4 / lz4hc compression with byte-shuffling.</p>
+
+<h2>Notes</h2>
+
+<div class="note">
+  <p><strong>Reference projects on disk.</strong> SwiftFITS is checked out as a sibling at
+  <code>../SwiftFITS</code> relative to this repository. Read it to replicate structure and style, but
+  <strong>never reference absolute SwiftFITS paths</strong> from SwiftXISF code or tests (per the source doc).
+  The verified XISF 1.0 structural facts used to write this plan are collected in the
+  <a href="#appendix">Appendix</a>.</p>
+</div>
+
+<p><strong>SwiftFITS conventions to replicate (verified by reading <code>../SwiftFITS</code>):</strong></p>
+<ul>
+  <li><strong>One public type per file</strong>, <code>PascalCase</code> file names matching the type
+      (<code>XISFFile.swift</code>, <code>XISFImage.swift</code>, …).</li>
+  <li><strong>MIT license banner</strong> at the top of every file (Jean-David Gadina — www.xs-labs.com,
+      year <strong>2026</strong>), followed by <code>import Foundation</code>. The existing
+      <code>SwiftXISF/SwiftXISF.swift</code> and <code>Package.swift</code> already carry this banner.</li>
+  <li><strong>Access control:</strong> explicit <code>public</code> on the API surface; <code>public
+      private(set)</code> for externally-readable, internally-set state; <code>internal</code>/<code>private</code>
+      for parsing helpers. (Matches both SwiftFITS and the user's library conventions.)</li>
+  <li><strong>SwiftDoc</strong> triple-slash comments on every public <em>and</em> private type/member,
+      including <code>Sendable</code>/thread-safety notes on reference types.</li>
+  <li><strong>Errors:</strong> a single <code>XISFError</code> enum conforming to <code>LocalizedError,
+      CustomStringConvertible, Sendable</code> with associated values carrying context (URL, offsets, reasons).</li>
+  <li><strong>Parsing strictness:</strong> an <code>XISFParsingOptions</code> <code>OptionSet</code> mirroring
+      <code>FITSParsingOptions</code> (lenient vs. strict handling of spec deviations, optional checksum
+      verification, whether external/distributed locations may be resolved).</li>
+  <li><strong>Foundation extensions</strong> for low-level helpers (<code>Data</code>, <code>String</code>,
+      <code>CharacterSet</code>), one per file, matching SwiftFITS.</li>
+  <li><strong>Testing:</strong> <code>swift-testing</code> (<code>import Testing</code>, <code>struct
+      Test_&lt;Type&gt;</code>, <code>@Test</code>, <code>#expect</code>/<code>#require</code>). Real sample files
+      live in a top-level <code>Test Files/</code> directory outside the package target and are loaded via
+      <code>#filePath</code> under SPM (with a <code>Bundle.module</code> fallback) — exactly as SwiftFITS does.
+      The existing <code>SwiftXISFTests/SwiftXISFTests.swift</code> placeholder will be removed.</li>
+  <li><strong>Xcode project parity:</strong> <code>SwiftXISF.xcodeproj</code> exists and must be kept in sync
+      with <code>Package.swift</code> as files are added (per the user's Xcode-project convention). Prefer
+      building/testing via <code>xcodebuild</code>.</li>
+</ul>
+
+<div class="note">
+  <p><strong>Open decision — folder organization.</strong> SwiftFITS keeps all ~10 source files flat at the
+  target root. SwiftXISF will have noticeably more types (~25+). The plan therefore proposes grouping sources
+  into subfolders by concern (<code>Core/</code>, <code>Model/</code>, <code>DataBlock/</code>,
+  <code>Compression/</code>, <code>Color/</code>, <code>Extensions/</code>), which aligns with the user's
+  "organize into subfolders when necessary" convention while keeping every other SwiftFITS convention identical.
+  <strong>Confirm at M1</strong> whether to use subfolders or stay flat to match SwiftFITS exactly.</p>
+</div>
+
+<div class="note">
+  <p><strong>Open decision — zstd dependency (M13).</strong> SwiftFITS has <em>no</em> external dependencies.
+  Apple's <code>Compression</code> framework covers <code>zlib</code> and <code>lz4</code>/<code>lz4hc</code>
+  (LZ4_HC produces standard LZ4 streams, decodable by the LZ4 decoder), but <strong>not zstd</strong>. zstd is
+  therefore isolated in the final milestone and requires choosing/approving an external dependency (e.g. a
+  SwiftPM zstd wrapper or vendoring libzstd). This dependency choice must be confirmed before M13 is implemented.</p>
+</div>
+
+<p><strong>Key implementation references:</strong> byte-level reads use little-endian for the header-length
+field and honor each image's <code>byteOrder</code> attribute for sample data (default big-endian per spec — to
+be verified during M9). Decompression uses Apple's <code>Compression</code> framework; checksums use
+<code>CryptoKit</code> (SHA-256/512) with <code>CommonCrypto</code>/Insecure SHA-1 for sha-1, and SHA-3 only if a
+practical implementation is available.</p>
+
+<h2>Milestones</h2>
+
+<!-- ============================== PHASE 1 ============================== -->
+<div class="phase-label">Phase 1 · Foundations</div>
+
+<div class="milestone">
+  <header><span class="num">M1</span><h3>Project scaffolding &amp; conventions</h3><span class="pill notstarted">Not started</span></header>
+  <p><strong>Goal:</strong> Establish the source/test layout, shared error and options types, and confirm the
+  folder-organization decision — so every later milestone drops into a consistent, SwiftFITS-faithful structure.</p>
+  <div class="field-label">Tasks</div>
+  <ul class="tasks">
+    <li>Confirm folder organization (subfolders vs. flat) — see the Notes decision; default to subfolders.</li>
+    <li>Remove the empty placeholder <code>SwiftXISF/SwiftXISF.swift</code> and the placeholder test in <code>SwiftXISFTests/SwiftXISFTests.swift</code>.</li>
+    <li>Add <code>XISFError.swift</code> — <code>public enum XISFError: LocalizedError, CustomStringConvertible, Sendable</code> with cases for invalid URL, unreadable file, invalid signature, invalid header length, malformed XML, invalid element/attribute, data-block resolution failure, decompression failure, checksum mismatch.</li>
+    <li>Add <code>XISFParsingOptions.swift</code> — <code>OptionSet</code> mirroring <code>FITSParsingOptions</code>: lenient/strict, verify-checksums, allow-external-locations, plus <code>.strict</code>/<code>.lenient</code> presets.</li>
+    <li>Establish the MIT banner + <code>import Foundation</code> on every new file (year 2026).</li>
+    <li>Keep <code>Package.swift</code> and <code>SwiftXISF.xcodeproj</code> in sync (group structure, membership).</li>
+    <li>Verify a clean <code>xcodebuild</code> build of the (near-empty) target.</li>
+    <li>Unit tests: <code>Test_XISFError.swift</code> (error descriptions), <code>Test_XISFParsingOptions.swift</code> (preset membership).</li>
+  </ul>
+  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
+  <div class="field-label">Completed</div><p class="placeholder">—</p>
+  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Review comments</div><p class="placeholder">—</p>
+</div>
+
+<div class="milestone">
+  <header><span class="num">M2</span><h3>Low-level byte &amp; encoding utilities</h3><span class="pill notstarted">Not started</span></header>
+  <p><strong>Goal:</strong> Provide the shared primitives the rest of the parser builds on: byte reading,
+  little-endian integer decode, and base64/hex decoding — mirroring SwiftFITS's <code>Data</code>/<code>String</code>/<code>CharacterSet</code> extensions.</p>
+  <div class="field-label">Tasks</div>
+  <ul class="tasks">
+    <li><code>Data.swift</code> extension: bounds-checked subdata, little-endian fixed-width integer reads (<code>UInt32</code> header length), ASCII-signature comparison helpers.</li>
+    <li>Hex (base16, lowercase) decoding helper and base64 decoding helper (whitespace-tolerant per spec).</li>
+    <li><code>String.swift</code> / <code>CharacterSet.swift</code> extensions only as needed for trimming/identifier validation (XISF id regex <code>[_a-zA-Z][_a-zA-Z0-9]*</code>).</li>
+    <li>Unit tests for each helper, including malformed/odd-length hex and invalid base64.</li>
+  </ul>
+  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
+  <div class="field-label">Completed</div><p class="placeholder">—</p>
+  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Review comments</div><p class="placeholder">—</p>
+</div>
+
+<!-- ============================== PHASE 2 ============================== -->
+<div class="phase-label">Phase 2 · Monolithic container &amp; XML header</div>
+
+<div class="milestone">
+  <header><span class="num">M3</span><h3>Monolithic file container</h3><span class="pill notstarted">Not started</span></header>
+  <p><strong>Goal:</strong> Parse the binary preamble and locate the XML header and attached-block region —
+  the <code>XISFFile</code> entry point skeleton, analogous to opening a <code>FITSFile</code>.</p>
+  <div class="field-label">Tasks</div>
+  <ul class="tasks">
+    <li><code>XISFFile.swift</code>: <code>public convenience init(url:options:)</code> and <code>public init(data:options:)</code>.</li>
+    <li>Validate the 8-byte signature <code>XISF0100</code> (offsets 0–7).</li>
+    <li>Read the 4-byte little-endian header-length field (offsets 8–11); validate the 4-byte reserved field is zero (offsets 12–15).</li>
+    <li>Slice out the UTF-8 XML header (starts at offset 16, length = header-length field) and retain the remaining bytes as the attached-block region (with absolute file offsets preserved for <code>attachment:position:size</code> resolution).</li>
+    <li>Expose the raw XML header string (e.g. <code>public var headerXML: String</code>) and a <code>maxHeaderSize</code>/signature constant, paralleling <code>FITSFile.blockSize</code>.</li>
+    <li>Unit tests: valid preamble, bad signature, truncated file, non-zero reserved, header length past EOF.</li>
+  </ul>
+  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
+  <div class="field-label">Completed</div><p class="placeholder">—</p>
+  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Review comments</div><p class="placeholder">—</p>
+</div>
+
+<div class="milestone">
+  <header><span class="num">M4</span><h3>XML header parsing infrastructure</h3><span class="pill notstarted">Not started</span></header>
+  <p><strong>Goal:</strong> Turn the XML header bytes into a navigable, typed element tree using
+  <code>XMLParser</code>, and validate the <code>&lt;xisf version="1.0"&gt;</code> root.</p>
+  <div class="field-label">Tasks</div>
+  <ul class="tasks">
+    <li>Internal <code>XMLParser</code>-based walker producing a lightweight element node tree (name, attributes, character content, children) — kept <code>internal</code>, not part of the public API.</li>
+    <li>Validate the root element is <code>xisf</code> with <code>version="1.0"</code>; surface malformed XML as <code>XISFError</code>.</li>
+    <li>Decide attribute case-sensitivity / namespace handling (root namespace <code>http://www.pixinsight.com/xisf</code>) and document it.</li>
+    <li>Wire <code>XISFFile</code> to parse the header into the element tree on init; expose discovered top-level child element kinds.</li>
+    <li>Unit tests: well-formed header, wrong root, missing version, malformed XML, namespaced vs. non-namespaced.</li>
+  </ul>
+  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
+  <div class="field-label">Completed</div><p class="placeholder">—</p>
+  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Review comments</div><p class="placeholder">—</p>
+</div>
+
+<!-- ============================== PHASE 3 ============================== -->
+<div class="phase-label">Phase 3 · Value model, properties &amp; keywords</div>
+
+<div class="milestone">
+  <header><span class="num">M5</span><h3>Typed value model</h3><span class="pill notstarted">Not started</span></header>
+  <p><strong>Goal:</strong> Model XISF property/value types as a typed enum — the SwiftXISF counterpart to
+  <code>FITSValue</code> — covering scalar types now and reserving cases for vector/matrix (filled in at M9).</p>
+  <div class="field-label">Tasks</div>
+  <ul class="tasks">
+    <li><code>XISFPropertyType.swift</code>: enum of the exact spec type strings (<code>Boolean</code>, <code>Int8…Int64</code>, <code>UInt8…UInt64</code>, <code>Float32/64</code>, <code>Complex32/64/128</code>, <code>String</code>, <code>TimePoint</code>, plus the <code>*Vector</code> / <code>*Matrix</code> / <code>ByteArray</code> families).</li>
+    <li><code>XISFValue.swift</code>: <code>public enum</code> with cases (boolean, integer, unsignedInteger, float, complex, string, timePoint, …) conforming to <code>Equatable, Hashable, Sendable</code>, with typed accessors and a nested <code>Kind</code>, mirroring <code>FITSValue</code>.</li>
+    <li>Scalar parsing from a <code>value="…"</code> attribute string for each scalar type (including <code>TimePoint</code> ISO-8601 and complex <code>(re,im)</code> forms — verify exact syntax against the spec during implementation).</li>
+    <li>Unit tests for every scalar type, including overflow, malformed values, and <code>Kind</code>/accessor behavior.</li>
+  </ul>
+  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
+  <div class="field-label">Completed</div><p class="placeholder">—</p>
+  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Review comments</div><p class="placeholder">—</p>
+</div>
+
+<div class="milestone">
+  <header><span class="num">M6</span><h3>Property &amp; FITSKeyword elements</h3><span class="pill notstarted">Not started</span></header>
+  <p><strong>Goal:</strong> Parse top-level <code>&lt;Property&gt;</code> (scalar + inline string) and
+  <code>&lt;FITSKeyword&gt;</code> elements — the SwiftXISF counterparts to <code>FITSProperty</code> — and
+  expose them on <code>XISFFile</code>.</p>
+  <div class="field-label">Tasks</div>
+  <ul class="tasks">
+    <li><code>XISFProperty.swift</code>: <code>public</code> type with <code>id</code>, <code>type</code> (<code>XISFPropertyType</code>), <code>value</code> (<code>XISFValue</code>), optional <code>comment</code>/<code>format</code>. Parse scalar values from <code>value="…"</code> and inline <code>String</code> from element content. (Vector/matrix data-block-backed values land in M9.)</li>
+    <li><code>XISFFITSKeyword.swift</code>: <code>name</code>, <code>value</code>, <code>comment</code> (handle empty-value HISTORY/COMMENT keywords; validate the 8-char keyword charset).</li>
+    <li>Expose on <code>XISFFile</code>: <code>public var properties: [XISFProperty]</code>, <code>public var keywords: [XISFFITSKeyword]</code>, and a keyed subscript paralleling SwiftFITS.</li>
+    <li>Unit tests: scalar properties of each type, inline-string property, duplicate ids, FITS keyword variants.</li>
+  </ul>
+  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
+  <div class="field-label">Completed</div><p class="placeholder">—</p>
+  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Review comments</div><p class="placeholder">—</p>
+</div>
+
+<!-- ============================== PHASE 4 ============================== -->
+<div class="phase-label">Phase 4 · Data-block pipeline</div>
+
+<div class="milestone">
+  <header><span class="num">M7</span><h3>Data-block location resolution (in-file)</h3><span class="pill notstarted">Not started</span></header>
+  <p><strong>Goal:</strong> Resolve a data block's raw (still-compressed) bytes from the three in-file location
+  forms — the foundation every image, thumbnail, and vector/matrix property reads through.</p>
+  <div class="field-label">Tasks</div>
+  <ul class="tasks">
+    <li><code>XISFDataBlockLocation.swift</code>: enum for <code>inline(encoding)</code> (<code>base64</code>/<code>hex</code>), <code>embedded</code> (child <code>&lt;Data encoding="…"&gt;</code>), <code>attachment(position:size:)</code>. (External <code>url(...)</code>/<code>path(...)</code> deferred to M11.)</li>
+    <li><code>XISFDataBlock.swift</code>: parses <code>location</code>, optional <code>compression</code>/<code>checksum</code>/<code>byteOrder</code> attributes; resolves to raw bytes (decoding inline/embedded encodings; slicing the attached region by absolute position/size).</li>
+    <li>Bounds-check attachment position/size against the file; surface failures as <code>XISFError</code>.</li>
+    <li>Unit tests: inline base64, inline hex, embedded base64, attachment slice, out-of-range attachment.</li>
+  </ul>
+  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
+  <div class="field-label">Completed</div><p class="placeholder">—</p>
+  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Review comments</div><p class="placeholder">—</p>
+</div>
+
+<div class="milestone">
+  <header><span class="num">M8</span><h3>Decompression &amp; byte un-shuffling</h3><span class="pill notstarted">Not started</span></header>
+  <p><strong>Goal:</strong> Decompress data blocks (zlib, lz4, lz4hc) via Apple's <code>Compression</code>
+  framework and reverse byte-shuffling, producing the final opaque bytes. zstd is explicitly excluded here
+  (M13).</p>
+  <div class="field-label">Tasks</div>
+  <ul class="tasks">
+    <li><code>XISFCompression.swift</code>: parse the <code>compression</code> attribute — codec (<code>zlib</code>, <code>zlib+sh</code>, <code>lz4</code>, <code>lz4+sh</code>, <code>lz4hc</code>, <code>lz4hc+sh</code>), <code>uncompressed-size</code>, optional <code>item-size</code> (shuffle), optional <code>subblocks</code>.</li>
+    <li>Decompress with <code>Compression</code> (<code>COMPRESSION_ZLIB</code>, <code>COMPRESSION_LZ4</code>; verify raw-vs-framed format expectations against real fixtures). Decode <code>lz4hc</code> via the LZ4 decoder.</li>
+    <li>Implement byte un-shuffling for the given <code>item-size</code>; handle multi-subblock streams.</li>
+    <li>Validate the decompressed length equals <code>uncompressed-size</code>.</li>
+    <li>Integrate into <code>XISFDataBlock</code> so resolved bytes are fully decompressed + unshuffled.</li>
+    <li>Unit tests: round-trip each codec against fixtures, with and without shuffling, plus a malformed/short stream.</li>
+  </ul>
+  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
+  <div class="field-label">Completed</div><p class="placeholder">—</p>
+  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Review comments</div><p class="placeholder">—</p>
+</div>
+
+<div class="milestone">
+  <header><span class="num">M9</span><h3>Checksum verification</h3><span class="pill notstarted">Not started</span></header>
+  <p><strong>Goal:</strong> Verify data-block checksums when present, gated by <code>XISFParsingOptions</code>.</p>
+  <div class="field-label">Tasks</div>
+  <ul class="tasks">
+    <li><code>XISFChecksum.swift</code>: parse <code>checksum="algorithm:digest"</code>; algorithm enum (<code>sha-1</code>, <code>sha-256</code>, <code>sha-512</code>, <code>sha3-256</code>, <code>sha3-512</code>; accept the <code>sha1</code>/<code>sha256</code>/<code>sha512</code> aliases); lowercase base16 digest.</li>
+    <li>Compute digests over the <em>stored (compressed, as-on-disk)</em> block bytes — confirm the spec's "what is hashed" rule during implementation — using <code>CryptoKit</code> (SHA-256/512), <code>Insecure.SHA1</code>/<code>CommonCrypto</code> (sha-1). Implement SHA-3 only if a practical path exists; otherwise surface "unsupported digest" cleanly.</li>
+    <li>Verify only when <code>options</code> request it; mismatches throw <code>XISFError.checksumMismatch</code>.</li>
+    <li>Unit tests: matching/mismatching digests per algorithm, unsupported algorithm, verification on/off.</li>
+  </ul>
+  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
+  <div class="field-label">Completed</div><p class="placeholder">—</p>
+  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Review comments</div><p class="placeholder">—</p>
+</div>
+
+<!-- ============================== PHASE 5 ============================== -->
+<div class="phase-label">Phase 5 · Images &amp; metadata</div>
+
+<div class="milestone">
+  <header><span class="num">M10</span><h3>Image element</h3><span class="pill notstarted">Not started</span></header>
+  <p><strong>Goal:</strong> Parse <code>&lt;Image&gt;</code> elements into <code>XISFImage</code> with full typed
+  metadata and opaque decoded pixel bytes — the central deliverable, analogous to a FITS data segment plus its
+  geometry keywords.</p>
+  <div class="field-label">Tasks</div>
+  <ul class="tasks">
+    <li>Supporting types: <code>XISFGeometry.swift</code> (spatial dims + channel count, parsed from <code>w:h:…:n</code>), <code>XISFSampleFormat.swift</code> (all 8 values + bytes-per-sample), <code>XISFColorSpace.swift</code> (<code>Gray</code>/<code>RGB</code>/<code>CIELab</code>), <code>XISFPixelStorage.swift</code> (<code>Planar</code>/<code>Normal</code>), <code>XISFByteOrder.swift</code> (big/little; verify default).</li>
+    <li><code>XISFImage.swift</code>: <code>geometry</code>, <code>sampleFormat</code>, <code>colorSpace</code>, <code>pixelStorage</code>, <code>bounds</code>, <code>byteOrder</code>, <code>imageType</code>, <code>orientation</code>, <code>id</code>, <code>uuid</code>, plus nested <code>properties</code>, <code>keywords</code>, and an <code>XISFDataBlock</code> exposing opaque pixel bytes (<code>public var data: Data</code>).</li>
+    <li>Validate expected uncompressed pixel byte count against <code>geometry × bytesPerSample</code>; require <code>bounds</code> for float formats per spec.</li>
+    <li>Expose <code>public var images: [XISFImage]</code> on <code>XISFFile</code>.</li>
+    <li>Vector/matrix property values: now that the data-block pipeline exists, complete <code>XISFProperty</code> for <code>length</code>/<code>rows</code>/<code>columns</code> data-block-backed values (raw bytes + element type).</li>
+    <li>Unit tests: planar &amp; normal storage, each color space, each sample format, multi-image files, geometry/size mismatch, vector/matrix properties.</li>
+  </ul>
+  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
+  <div class="field-label">Completed</div><p class="placeholder">—</p>
+  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Review comments</div><p class="placeholder">—</p>
+</div>
+
+<div class="milestone">
+  <header><span class="num">M11</span><h3>Metadata, thumbnails &amp; color/ICC elements</h3><span class="pill notstarted">Not started</span></header>
+  <p><strong>Goal:</strong> Parse the remaining unit- and image-level metadata elements into typed Swift values.</p>
+  <div class="field-label">Tasks</div>
+  <ul class="tasks">
+    <li><code>XISFMetadata.swift</code>: the <code>&lt;Metadata&gt;</code> container of properties (unit-level).</li>
+    <li><code>XISFThumbnail.swift</code>: thumbnail image (8/16-bit Gray/RGB), reusing <code>XISFImage</code>/data-block machinery.</li>
+    <li>Color/ancillary types: <code>XISFICCProfile.swift</code> (raw profile bytes via data block), <code>XISFRGBWorkingSpace.swift</code>, <code>XISFDisplayFunction.swift</code>, <code>XISFColorFilterArray.swift</code> (CFA pattern), <code>XISFResolution.swift</code>.</li>
+    <li>Attach image-level metadata (thumbnail, ICC, CFA, resolution, display function) to <code>XISFImage</code>; expose unit-level <code>metadata</code> on <code>XISFFile</code>.</li>
+    <li>Unit tests for each element, including absence (all optional).</li>
+  </ul>
+  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
+  <div class="field-label">Completed</div><p class="placeholder">—</p>
+  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Review comments</div><p class="placeholder">—</p>
+</div>
+
+<!-- ============================== PHASE 6 ============================== -->
+<div class="phase-label">Phase 6 · Extended sources &amp; optional codec</div>
+
+<div class="milestone">
+  <header><span class="num">M12</span><h3>External / distributed data blocks</h3><span class="pill notstarted">Not started</span></header>
+  <p><strong>Goal:</strong> Resolve data blocks stored outside the monolithic file via <code>url(...)</code> and
+  <code>path(...)</code> locations, gated for safety by <code>XISFParsingOptions</code>.</p>
+  <div class="field-label">Tasks</div>
+  <ul class="tasks">
+    <li>Extend <code>XISFDataBlockLocation</code> with <code>url(URL, indexId:)</code>, <code>path(absolute, indexId:)</code>, and <code>path(@header_dir/relative, indexId:)</code>; XML-unescape parentheses; parse optional hex <code>:index-id</code>.</li>
+    <li>Resolve <code>@header_dir</code> relative to the file's directory (only meaningful for <code>init(url:)</code>); reject relative/external locations cleanly for <code>init(data:)</code>.</li>
+    <li>Gate all external resolution behind an opt-in option (default off) for security; document the risk.</li>
+    <li>Define behavior for the <code>.xisb</code> external-data-block-file index lookup (scope/best-effort; document limits).</li>
+    <li>Unit tests: <code>path(@header_dir/…)</code> with a fixture pair, absolute <code>path(...)</code>, option-disabled rejection, missing target file.</li>
+  </ul>
+  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
+  <div class="field-label">Completed</div><p class="placeholder">—</p>
+  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Review comments</div><p class="placeholder">—</p>
+</div>
+
+<div class="milestone">
+  <header><span class="num">M13</span><h3>zstd decompression (deferred · external dependency)</h3><span class="pill notstarted">Not started</span></header>
+  <p><strong>Goal:</strong> Add <code>zstd</code> / <code>zstd+sh</code> support, the only feature requiring an
+  external dependency. <strong>Requires dependency sign-off before starting</strong> (see Notes).</p>
+  <div class="field-label">Tasks</div>
+  <ul class="tasks">
+    <li>Confirm and add the zstd dependency (SwiftPM zstd wrapper or vendored libzstd); update <code>Package.swift</code> <em>and</em> <code>SwiftXISF.xcodeproj</code> together.</li>
+    <li>Extend <code>XISFCompression</code> with the <code>zstd</code> / <code>zstd+sh</code> codecs and wire decode into the pipeline.</li>
+    <li>Keep the dependency optional/isolated so the rest of the library still builds dependency-free if zstd is excluded (consider a separate product/trait if practical).</li>
+    <li>Unit tests: zstd round-trip with and without shuffling.</li>
+  </ul>
+  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
+  <div class="field-label">Completed</div><p class="placeholder">—</p>
+  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Review comments</div><p class="placeholder">—</p>
+</div>
+
+<!-- ============================== PHASE 7 ============================== -->
+<div class="phase-label">Phase 7 · Integration, polish &amp; docs</div>
+
+<div class="milestone">
+  <header><span class="num">M14</span><h3>Integration test suite with real fixtures</h3><span class="pill notstarted">Not started</span></header>
+  <p><strong>Goal:</strong> Match SwiftFITS's broad test coverage end-to-end against real <code>.xisf</code> files,
+  using the same <code>TestUtilities</code> + <code>Test Files/</code> approach.</p>
+  <div class="field-label">Tasks</div>
+  <ul class="tasks">
+    <li><code>TestUtilities.swift</code>: load real sample files from a top-level <code>Test Files/</code> directory via <code>#filePath</code> (Bundle.module fallback), plus synthetic monolithic-file builders. <em>(Sample files to be provided on demand per the source doc.)</em></li>
+    <li><code>TestError.swift</code> custom test error, mirroring SwiftFITS.</li>
+    <li>Parse-all-fixtures test; per-fixture assertions on geometry/sample format/channel counts; mixed compression/checksum coverage.</li>
+    <li>Confirm <code>CustomStringConvertible</code> descriptions on the public types (parity with SwiftFITS).</li>
+    <li>Full <code>xcodebuild test</code> run; report results honestly.</li>
+  </ul>
+  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
+  <div class="field-label">Completed</div><p class="placeholder">—</p>
+  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Review comments</div><p class="placeholder">—</p>
+</div>
+
+<div class="milestone">
+  <header><span class="num">M15</span><h3>Documentation &amp; README</h3><span class="pill notstarted">Not started</span></header>
+  <p><strong>Goal:</strong> Ensure every public and private type/member is documented (SwiftDoc) and the README
+  describes the API and usage, matching SwiftFITS's presentation.</p>
+  <div class="field-label">Tasks</div>
+  <ul class="tasks">
+    <li>SwiftDoc comments on all public and private types/members, including <code>Sendable</code>/thread-safety notes.</li>
+    <li>Update <code>README.md</code>: overview, supported features (and current limitations — e.g. zstd opt-in, read-only), and a usage example.</li>
+    <li>Final pass for convention adherence (no force-unwraps, <code>let</code> over <code>var</code>, aligned assignments, early returns, no raw loops).</li>
+    <li>Confirm <code>Package.swift</code> ↔ <code>SwiftXISF.xcodeproj</code> are fully in sync.</li>
+  </ul>
+  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
+  <div class="field-label">Completed</div><p class="placeholder">—</p>
+  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Review comments</div><p class="placeholder">—</p>
+</div>
+
+<hr>
+
+<h2 id="appendix">Appendix</h2>
+
+<h3>A. SwiftFITS → SwiftXISF type mapping</h3>
+<div class="scroll">
+<table>
+  <tr><th>SwiftFITS</th><th>SwiftXISF counterpart</th><th>Role</th></tr>
+  <tr><td><code>FITSFile</code></td><td><code>XISFFile</code></td><td>Entry point: open from <code>URL</code>/<code>Data</code>; exposes images, properties, keywords, metadata, raw header.</td></tr>
+  <tr><td><code>FITSSection</code></td><td><code>XISFImage</code> (+ file-level collections)</td><td>XISF has no fixed "section"; images and top-level metadata replace it.</td></tr>
+  <tr><td><code>FITSProperty</code></td><td><code>XISFProperty</code> + <code>XISFFITSKeyword</code></td><td>XISF separates rich properties from embedded FITS keywords.</td></tr>
+  <tr><td><code>FITSValue</code></td><td><code>XISFValue</code> / <code>XISFPropertyType</code></td><td>Typed value enum; XISF has a far larger type set.</td></tr>
+  <tr><td><code>FITSError</code></td><td><code>XISFError</code></td><td><code>LocalizedError</code> enum with context.</td></tr>
+  <tr><td><code>FITSParsingOptions</code></td><td><code>XISFParsingOptions</code></td><td>Strictness + checksum/external-location toggles.</td></tr>
+  <tr><td><code>FITSBlock</code></td><td><code>XISFDataBlock</code> (+ location/compression/checksum)</td><td>The data-bearing unit; XISF blocks are located, compressed, checksummed.</td></tr>
+  <tr><td><code>Data</code>/<code>String</code>/<code>CharacterSet</code> ext.</td><td>same</td><td>Low-level helpers.</td></tr>
+</table>
+</div>
+
+<h3>B. Verified XISF 1.0 structural reference</h3>
+<p class="placeholder">Quoted from the XISF 1.0 specification (pixinsight.com/doc/docs/XISF-1.0-spec) — used to write this plan; reconfirm against the spec while implementing.</p>
+
+<p><strong>Monolithic file layout (byte offsets):</strong></p>
+<pre><code>0–7    Signature   ASCII "XISF0100"
+8–11   HeaderLen   uint32, LITTLE-ENDIAN  (length of the XML header)
+12–15  Reserved    4 bytes, must be zero
+16…    XML header  UTF-8, length = HeaderLen   (&lt;?xml …&gt;…&lt;/xisf&gt;, min 65 bytes)
+…      (optional zero padding, then attached data blocks)</code></pre>
+
+<p><strong>Root:</strong> <code>&lt;xisf version="1.0" xmlns="http://www.pixinsight.com/xisf" …&gt;</code>.
+<strong>Core child elements:</strong> <code>Image</code>, <code>Property</code>, <code>FITSKeyword</code>,
+<code>Metadata</code>, <code>Thumbnail</code>, <code>Reference</code>, <code>ICCProfile</code>,
+<code>RGBWorkingSpace</code>, <code>DisplayFunction</code>, <code>ColorFilterArray</code>,
+<code>Resolution</code>, <code>Structure</code>/<code>Table</code> (tables out of scope).</p>
+
+<p><strong><code>Image</code> attributes:</strong> <code>geometry="w:h:…:channels"</code>;
+<code>sampleFormat ∈ {UInt8, UInt16, UInt32, UInt64, Float32, Float64, Complex32, Complex64}</code>;
+<code>colorSpace ∈ {Gray, RGB, CIELab}</code> (default <code>Gray</code>);
+<code>pixelStorage ∈ {Planar, Normal}</code> (default <code>Planar</code>);
+<code>bounds="lo:hi"</code> (required for float formats); <code>imageType</code>, <code>offset</code>,
+<code>orientation</code>, <code>id</code> (<code>[_a-zA-Z][_a-zA-Z0-9]*</code>), <code>uuid</code>; plus the shared
+data-block attributes <code>location</code>, <code>compression</code>, <code>checksum</code>, <code>byteOrder</code>.</p>
+
+<p><strong>Data-block <code>location</code> forms:</strong></p>
+<pre><code>location="inline:base64"      (data in element character content)
+location="inline:hex"         (lowercase hex)
+location="embedded"           (child &lt;Data encoding="base64|hex"&gt;…&lt;/Data&gt;)
+location="attachment:POSITION:SIZE"          e.g. attachment:4570:1428362
+location="url(URL)"  |  "url(URL):INDEX-ID"  (parens XML-escaped; index-id hex)
+location="path(/abs/path)"  |  "path(@header_dir/rel/path):INDEX-ID"</code></pre>
+
+<p><strong><code>compression</code> forms:</strong></p>
+<pre><code>compression="zlib:UNCOMPRESSED-SIZE"           e.g. zlib:6220800
+compression="lz4:UNCOMPRESSED-SIZE"
+compression="lz4hc:UNCOMPRESSED-SIZE"
+compression="zlib+sh:UNCOMPRESSED-SIZE:ITEM-SIZE"   (+sh = byte shuffling)
+compression="lz4+sh:UNCOMPRESSED-SIZE:ITEM-SIZE"
+compression="lz4hc+sh:UNCOMPRESSED-SIZE:ITEM-SIZE"
+subblocks="c1,u1:c2,u2:…"     (optional split-compression sub-blocks)
+zstd / zstd+sh                 (same syntax; deferred to M13 — external dep)</code></pre>
+
+<p><strong><code>checksum</code> form:</strong> <code>checksum="algorithm:digest"</code>, digest = lowercase base16.
+Algorithms: <code>sha-1</code>/<code>sha1</code> (must-support), <code>sha-256</code>/<code>sha256</code>,
+<code>sha-512</code>/<code>sha512</code>, <code>sha3-256</code>, <code>sha3-512</code>.</p>
+
+<p><strong><code>Property</code> types:</strong> scalars <code>Boolean</code>, <code>Int8…Int64</code>,
+<code>UInt8…UInt64</code>, <code>Float32/64</code>, <code>Complex32/64/128</code>, <code>String</code>,
+<code>TimePoint</code>; vectors <code>ByteArray</code>, <code>{I,U}{8,16,32,64}Vector</code>,
+<code>F{32,64}Vector</code>, <code>C{32,64,128}Vector</code>; matrices the corresponding <code>*Matrix</code>
+forms. Scalars use <code>value="…"</code>; strings may be inline content; vectors add <code>length="N"</code>;
+matrices add <code>rows</code>/<code>columns</code>; vector/matrix/large-string values use a data block
+(<code>location</code>).</p>
+
+<p><strong><code>FITSKeyword</code> attributes:</strong> <code>name</code> (8-char, <code>[A-Z0-9_-]</code>,
+left-justified), <code>value</code> (empty for HISTORY/COMMENT), <code>comment</code>.</p>
+
+<h3>C. Compression / digest API mapping (to verify during implementation)</h3>
+<ul>
+  <li><code>zlib</code>, <code>lz4</code> → Apple <code>Compression</code> (<code>COMPRESSION_ZLIB</code>, <code>COMPRESSION_LZ4</code>); <code>lz4hc</code> streams decode with the LZ4 decoder. Confirm raw vs. framed expectations against real fixtures.</li>
+  <li><code>sha-256</code>/<code>sha-512</code> → <code>CryptoKit.SHA256</code>/<code>SHA512</code>; <code>sha-1</code> → <code>Insecure.SHA1</code> or <code>CommonCrypto</code>. <code>sha3-*</code> only if a practical implementation is available.</li>
+  <li><code>zstd</code> → no Apple API; external dependency (M13).</li>
+</ul>
