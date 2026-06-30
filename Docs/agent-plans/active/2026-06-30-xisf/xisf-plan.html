@@ -263,7 +263,7 @@ practical implementation is available.</p>
 </div>
 
 <div class="milestone">
-  <header><span class="num">M2</span><h3>Low-level byte &amp; encoding utilities</h3><span class="pill notstarted">Not started</span></header>
+  <header><span class="num">M2</span><h3>Low-level byte &amp; encoding utilities</h3><span class="pill completed">Completed</span></header>
   <p><strong>Goal:</strong> Provide the shared primitives the rest of the parser builds on: byte reading,
   little-endian integer decode, and base64/hex decoding — mirroring SwiftFITS's <code>Data</code>/<code>String</code>/<code>CharacterSet</code> extensions.</p>
   <div class="field-label">Tasks</div>
@@ -273,9 +273,19 @@ practical implementation is available.</p>
     <li><code>String.swift</code> / <code>CharacterSet.swift</code> extensions only as needed for trimming/identifier validation (XISF id regex <code>[_a-zA-Z][_a-zA-Z0-9]*</code>).</li>
     <li>Unit tests for each helper, including malformed/odd-length hex and invalid base64.</li>
   </ul>
-  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
-  <div class="field-label">Completed</div><p class="placeholder">—</p>
-  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Status</div><p><span class="pill completed">Completed</span></p>
+  <div class="field-label">Completed</div><p>2026-06-30</p>
+  <div class="field-label">Implementation notes</div>
+  <p>Implemented with TDD (tests written first, watched fail, then implemented to green). All helpers live in a new <code>SwiftXISF/Extensions/</code> group, mirrored as <code>SwiftXISFTests/Extensions/</code>.</p>
+  <ul>
+    <li><strong><code>Data.swift</code></strong> — <code>public extension Data</code> with: <code>bytes(at:count:)</code> (bounds-checked sub-range), <code>littleEndianInteger(at:as:)</code> (generic over <code>FixedWidthInteger</code>; builds the value through <code>T.Magnitude</code> then <code>T(truncatingIfNeeded:)</code> so it is safe for signed and unsigned types and never traps on shift), and <code>matchesASCII(_:at:)</code> (signature comparison). <strong>All offsets are relative to <code>startIndex</code></strong>, so the helpers work correctly on slices — covered by dedicated non-zero-based-slice tests, the same robustness concern SwiftFITS's <code>chunked</code> tests guard.</li>
+    <li><strong><code>String.swift</code></strong> — <code>public extension String</code> with: <code>isValidXISFIdentifier</code> (validates the <code>[_a-zA-Z][_a-zA-Z0-9]*</code> grammar via the new character sets), <code>xisfHexDecodedData()</code> (whitespace-tolerant; accepts upper- and lowercase digits; throws on odd length or non-hex digit), and <code>xisfBase64DecodedData()</code> (uses <code>Data(base64Encoded:options:.ignoreUnknownCharacters)</code> for whitespace tolerance; throws on invalid input).</li>
+    <li><strong><code>CharacterSet.swift</code></strong> — <code>public extension CharacterSet</code> with <code>xisfIdentifierStart</code> (letters + underscore) and <code>xisfIdentifierBody</code> (letters + digits + underscore).</li>
+    <li><strong>Decision — placement of hex/base64 decoders:</strong> put them on <code>String</code> (the encoded inline content is textual XML character data) rather than as <code>Data</code> initializers. All errors funnel through <code>XISFError.dataError(reason:)</code> — the case added in M1 for exactly this purpose.</li>
+    <li><strong>Decision — deferred trimming helpers:</strong> SwiftFITS has <code>left/rightTrimmingCharacters(in:)</code>, but nothing in M2 needs them (the decoders strip their own whitespace), so per the plan's "only as needed" I did not add them yet; they can be introduced when a later milestone needs attribute-value trimming.</li>
+    <li><strong>Xcode project sync:</strong> added <code>Extensions</code> groups and the three source + three test file references and build-phase entries to <code>SwiftXISF.xcodeproj</code>. <code>Package.swift</code> unchanged (recursive source discovery).</li>
+    <li><strong>Verification:</strong> <code>swift test</code> → 16 tests pass; <code>xcodebuild … build test</code> → <code>** TEST SUCCEEDED **</code>, 16 tests pass.</li>
+  </ul>
   <div class="field-label">Review comments</div><p class="placeholder">—</p>
 </div>
 

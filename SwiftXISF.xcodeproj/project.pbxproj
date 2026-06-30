@@ -12,6 +12,12 @@
 		AB0000000000000000000005 /* XISFParsingOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000004 /* XISFParsingOptions.swift */; };
 		AB0000000000000000000008 /* XISFError.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000007 /* XISFError.swift */; };
 		AB000000000000000000000A /* XISFParsingOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000009 /* XISFParsingOptions.swift */; };
+		AB000000000000000000000D /* Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000000C /* Data.swift */; };
+		AB000000000000000000000F /* String.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000000E /* String.swift */; };
+		AB0000000000000000000011 /* CharacterSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000010 /* CharacterSet.swift */; };
+		AB0000000000000000000014 /* Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000013 /* Data.swift */; };
+		AB0000000000000000000016 /* String.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000015 /* String.swift */; };
+		AB0000000000000000000018 /* CharacterSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000017 /* CharacterSet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -80,6 +86,12 @@
 		AB0000000000000000000004 /* XISFParsingOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFParsingOptions.swift; sourceTree = "<group>"; };
 		AB0000000000000000000007 /* XISFError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFError.swift; sourceTree = "<group>"; };
 		AB0000000000000000000009 /* XISFParsingOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFParsingOptions.swift; sourceTree = "<group>"; };
+		AB000000000000000000000C /* Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Data.swift; sourceTree = "<group>"; };
+		AB000000000000000000000E /* String.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = String.swift; sourceTree = "<group>"; };
+		AB0000000000000000000010 /* CharacterSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterSet.swift; sourceTree = "<group>"; };
+		AB0000000000000000000013 /* Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Data.swift; sourceTree = "<group>"; };
+		AB0000000000000000000015 /* String.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = String.swift; sourceTree = "<group>"; };
+		AB0000000000000000000017 /* CharacterSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterSet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -253,6 +265,7 @@
 			isa = PBXGroup;
 			children = (
 				AB0000000000000000000001 /* Core */,
+				AB000000000000000000000B /* Extensions */,
 			);
 			path = SwiftXISF;
 			sourceTree = "<group>";
@@ -261,6 +274,7 @@
 			isa = PBXGroup;
 			children = (
 				AB0000000000000000000006 /* Core */,
+				AB0000000000000000000012 /* Extensions */,
 			);
 			path = SwiftXISFTests;
 			sourceTree = "<group>";
@@ -281,6 +295,26 @@
 				AB0000000000000000000009 /* XISFParsingOptions.swift */,
 			);
 			path = Core;
+			sourceTree = "<group>";
+		};
+		AB000000000000000000000B /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				AB000000000000000000000C /* Data.swift */,
+				AB000000000000000000000E /* String.swift */,
+				AB0000000000000000000010 /* CharacterSet.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		AB0000000000000000000012 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				AB0000000000000000000013 /* Data.swift */,
+				AB0000000000000000000015 /* String.swift */,
+				AB0000000000000000000017 /* CharacterSet.swift */,
+			);
+			path = Extensions;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -398,6 +432,9 @@
 			files = (
 				AB0000000000000000000003 /* XISFError.swift in Sources */,
 				AB0000000000000000000005 /* XISFParsingOptions.swift in Sources */,
+				AB000000000000000000000D /* Data.swift in Sources */,
+				AB000000000000000000000F /* String.swift in Sources */,
+				AB0000000000000000000011 /* CharacterSet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -407,6 +444,9 @@
 			files = (
 				AB0000000000000000000008 /* XISFError.swift in Sources */,
 				AB000000000000000000000A /* XISFParsingOptions.swift in Sources */,
+				AB0000000000000000000014 /* Data.swift in Sources */,
+				AB0000000000000000000016 /* String.swift in Sources */,
+				AB0000000000000000000018 /* CharacterSet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
