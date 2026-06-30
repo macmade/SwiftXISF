@@ -8,8 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		052104742FF3AE500089C911 /* SwiftXISF.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0521046A2FF3AE500089C911 /* SwiftXISF.framework */; };
-		052104C32FF3AEB20089C911 /* SwiftXISF.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052104C12FF3AEB20089C911 /* SwiftXISF.swift */; };
-		052104C62FF3AEB50089C911 /* SwiftXISFTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052104C42FF3AEB50089C911 /* SwiftXISFTests.swift */; };
+		AB0000000000000000000003 /* XISFError.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000002 /* XISFError.swift */; };
+		AB0000000000000000000005 /* XISFParsingOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000004 /* XISFParsingOptions.swift */; };
+		AB0000000000000000000008 /* XISFError.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000007 /* XISFError.swift */; };
+		AB000000000000000000000A /* XISFParsingOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000009 /* XISFParsingOptions.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -74,8 +76,10 @@
 		052104BD2FF3AEAE0089C911 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		052104BE2FF3AEAE0089C911 /* Release - ccache.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Release - ccache.xcconfig"; sourceTree = "<group>"; };
 		052104BF2FF3AEAE0089C911 /* Release - Library.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Release - Library.xcconfig"; sourceTree = "<group>"; };
-		052104C12FF3AEB20089C911 /* SwiftXISF.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftXISF.swift; sourceTree = "<group>"; };
-		052104C42FF3AEB50089C911 /* SwiftXISFTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftXISFTests.swift; sourceTree = "<group>"; };
+		AB0000000000000000000002 /* XISFError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFError.swift; sourceTree = "<group>"; };
+		AB0000000000000000000004 /* XISFParsingOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFParsingOptions.swift; sourceTree = "<group>"; };
+		AB0000000000000000000007 /* XISFError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFError.swift; sourceTree = "<group>"; };
+		AB0000000000000000000009 /* XISFParsingOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFParsingOptions.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -248,7 +252,7 @@
 		052104C22FF3AEB20089C911 /* SwiftXISF */ = {
 			isa = PBXGroup;
 			children = (
-				052104C12FF3AEB20089C911 /* SwiftXISF.swift */,
+				AB0000000000000000000001 /* Core */,
 			);
 			path = SwiftXISF;
 			sourceTree = "<group>";
@@ -256,9 +260,27 @@
 		052104C52FF3AEB50089C911 /* SwiftXISFTests */ = {
 			isa = PBXGroup;
 			children = (
-				052104C42FF3AEB50089C911 /* SwiftXISFTests.swift */,
+				AB0000000000000000000006 /* Core */,
 			);
 			path = SwiftXISFTests;
+			sourceTree = "<group>";
+		};
+		AB0000000000000000000001 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				AB0000000000000000000002 /* XISFError.swift */,
+				AB0000000000000000000004 /* XISFParsingOptions.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		AB0000000000000000000006 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				AB0000000000000000000007 /* XISFError.swift */,
+				AB0000000000000000000009 /* XISFParsingOptions.swift */,
+			);
+			path = Core;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -374,7 +396,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				052104C32FF3AEB20089C911 /* SwiftXISF.swift in Sources */,
+				AB0000000000000000000003 /* XISFError.swift in Sources */,
+				AB0000000000000000000005 /* XISFParsingOptions.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -382,7 +405,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				052104C62FF3AEB50089C911 /* SwiftXISFTests.swift in Sources */,
+				AB0000000000000000000008 /* XISFError.swift in Sources */,
+				AB000000000000000000000A /* XISFParsingOptions.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

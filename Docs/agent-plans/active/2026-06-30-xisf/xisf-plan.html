@@ -231,7 +231,7 @@ practical implementation is available.</p>
 <div class="phase-label">Phase 1 · Foundations</div>
 
 <div class="milestone">
-  <header><span class="num">M1</span><h3>Project scaffolding &amp; conventions</h3><span class="pill notstarted">Not started</span></header>
+  <header><span class="num">M1</span><h3>Project scaffolding &amp; conventions</h3><span class="pill completed">Completed</span></header>
   <p><strong>Goal:</strong> Establish the source/test layout, shared error and options types, and confirm the
   folder-organization decision — so every later milestone drops into a consistent, SwiftFITS-faithful structure.</p>
   <div class="field-label">Tasks</div>
@@ -245,9 +245,20 @@ practical implementation is available.</p>
     <li>Verify a clean <code>xcodebuild</code> build of the (near-empty) target.</li>
     <li>Unit tests: <code>Test_XISFError.swift</code> (error descriptions), <code>Test_XISFParsingOptions.swift</code> (preset membership).</li>
   </ul>
-  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
-  <div class="field-label">Completed</div><p class="placeholder">—</p>
-  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Status</div><p><span class="pill completed">Completed</span></p>
+  <div class="field-label">Completed</div><p>2026-06-30</p>
+  <div class="field-label">Implementation notes</div>
+  <p>Implemented with TDD (tests written first, watched fail, then implemented to green).</p>
+  <ul>
+    <li><strong>Folder organization:</strong> confirmed <em>subfolders by concern</em> (the plan's default). Created <code>SwiftXISF/Core/</code> and mirrored it as <code>SwiftXISFTests/Core/</code>. Later milestones will add <code>Model/</code>, <code>DataBlock/</code>, <code>Compression/</code>, <code>Color/</code>, <code>Extensions/</code>.</li>
+    <li><strong>Removed placeholders:</strong> deleted <code>SwiftXISF/SwiftXISF.swift</code> and <code>SwiftXISFTests/SwiftXISFTests.swift</code>.</li>
+    <li><strong><code>XISFError</code></strong> (<code>SwiftXISF/Core/XISFError.swift</code>): <code>public enum … : LocalizedError, CustomStringConvertible, Sendable</code> with cases <code>invalidFileURL(url:)</code>, <code>cannotReadFile(url:)</code>, <code>invalidSignature(reason:)</code>, <code>invalidHeaderLength(reason:)</code>, <code>malformedXML(reason:)</code>, <code>invalidElement(reason:)</code> (covers the plan's "invalid element/attribute"), <code>dataBlockError(reason:)</code> (data-block resolution failure), <code>decompressionError(reason:)</code>, <code>checksumMismatch(reason:)</code>. <code>description</code> is prefixed <code>"XISF Error:"</code>, exactly mirroring <code>FITSError</code>.</li>
+    <li><strong>Deviation (added case):</strong> also added <code>dataError(reason:)</code> — not in the M1 enumeration, but present in <code>FITSError</code> and needed by the M2 low-level <code>Data</code>/<code>String</code> helpers (malformed hex/base64). Kept it now to mirror SwiftFITS and avoid churn. Flag for review.</li>
+    <li><strong><code>XISFParsingOptions</code></strong> (<code>SwiftXISF/Core/XISFParsingOptions.swift</code>): <code>public struct … : OptionSet, Sendable</code> with flags <code>verifyChecksums</code>, <code>allowExternalLocations</code>, <code>allowSpecDeviations</code>, and presets <code>strict = [.verifyChecksums]</code> and <code>lenient = [.allowSpecDeviations]</code>. <strong>Assumption to confirm:</strong> the plan only says "lenient/strict, verify-checksums, allow-external-locations". I chose: strict verifies checksums and forbids deviations; lenient tolerates deviations and does not force checksum verification; both leave external-location resolution off by default (opt-in for security, per M12). Open to adjusting these semantics.</li>
+    <li><strong>Test file naming:</strong> followed the actual SwiftFITS convention — test files named after the type under the test target (<code>SwiftXISFTests/Core/XISFError.swift</code>, <code>…/XISFParsingOptions.swift</code>) with <code>struct Test_XISFError</code> / <code>struct Test_XISFParsingOptions</code> inside — rather than the plan's literal <code>Test_XISFError.swift</code> filename. <code>Test_XISFError.description()</code> mirrors SwiftFITS's table-driven test; <code>Test_XISFParsingOptions</code> covers strict/lenient preset membership and raw-value round-trip.</li>
+    <li><strong>Xcode project sync:</strong> updated <code>SwiftXISF.xcodeproj/project.pbxproj</code> — removed the old placeholder file refs/build entries and added <code>Core</code> groups plus the four new file references and build-phase entries for both targets. <code>Package.swift</code> needed no change (SPM discovers sources recursively under the target path).</li>
+    <li><strong>Verification:</strong> <code>swift test</code> → 4 tests pass; <code>xcodebuild -scheme SwiftXISF -configuration Debug -destination 'platform=macOS' build test</code> → <code>** TEST SUCCEEDED **</code>, all 4 tests pass.</li>
+  </ul>
   <div class="field-label">Review comments</div><p class="placeholder">—</p>
 </div>
 

@@ -23,4 +23,36 @@
  ******************************************************************************/
 
 import Foundation
+@testable import SwiftXISF
+import Testing
 
+struct Test_XISFParsingOptions
+{
+    @Test
+    func strictPreset() async throws
+    {
+        let options = XISFParsingOptions.strict
+
+        #expect( options.contains( .verifyChecksums ) )
+        #expect( options.contains( .allowSpecDeviations )     == false )
+        #expect( options.contains( .allowExternalLocations )  == false )
+    }
+
+    @Test
+    func lenientPreset() async throws
+    {
+        let options = XISFParsingOptions.lenient
+
+        #expect( options.contains( .allowSpecDeviations ) )
+        #expect( options.contains( .verifyChecksums )        == false )
+        #expect( options.contains( .allowExternalLocations ) == false )
+    }
+
+    @Test
+    func rawValueRoundTrip() async throws
+    {
+        let options = XISFParsingOptions( rawValue: XISFParsingOptions.verifyChecksums.rawValue )
+
+        #expect( options.contains( .verifyChecksums ) )
+    }
+}
