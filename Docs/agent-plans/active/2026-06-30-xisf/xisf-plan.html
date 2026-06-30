@@ -424,7 +424,7 @@ practical implementation is available.</p>
 <div class="phase-label">Phase 4 · Data-block pipeline</div>
 
 <div class="milestone">
-  <header><span class="num">M7</span><h3>Data-block location resolution (in-file)</h3><span class="pill notstarted">Not started</span></header>
+  <header><span class="num">M7</span><h3>Data-block location resolution (in-file)</h3><span class="pill completed">Completed</span></header>
   <p><strong>Goal:</strong> Resolve a data block's raw (still-compressed) bytes from the three in-file location
   forms — the foundation every image, thumbnail, and vector/matrix property reads through.</p>
   <div class="field-label">Tasks</div>
@@ -434,10 +434,27 @@ practical implementation is available.</p>
     <li>Bounds-check attachment position/size against the file; surface failures as <code>XISFError</code>.</li>
     <li>Unit tests: inline base64, inline hex, embedded base64, attachment slice, out-of-range attachment.</li>
   </ul>
-  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
-  <div class="field-label">Completed</div><p class="placeholder">—</p>
-  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
-  <div class="field-label">Review comments</div><p class="placeholder">—</p>
+  <div class="field-label">Status</div><p><span class="pill completed">Completed</span></p>
+  <div class="field-label">Completed</div><p>2026-06-30</p>
+  <div class="field-label">Implementation notes</div>
+  <p>Implemented with TDD. New types in a new <code>SwiftXISF/DataBlock/</code> group: <code>XISFDataBlockLocation</code> and <code>XISFDataBlock</code>, with tests in <code>SwiftXISFTests/DataBlock/</code>.</p>
+  <ul>
+    <li><strong>Spec verification (libXISF):</strong> confirmed the <code>location</code> grammar — <code>inline:base64|hex</code> (element text content), <code>embedded</code> (child <code>&lt;Data encoding="base64|hex"&gt;</code>), <code>attachment:POSITION:SIZE</code> (absolute file offset). Also confirmed that for an embedded block the <code>compression</code> is declared on the <code>&lt;Data&gt;</code> child.</li>
+    <li><strong><code>XISFDataBlockLocation</code></strong>: <code>Equatable, Sendable</code> enum with <code>inline(encoding:)</code>, <code>embedded</code>, <code>attachment(position:size:)</code> and a nested <code>Encoding</code> (<code>base64</code>/<code>hex</code>). <code>init(attribute:)</code> parses the colon-split string; <code>url(...)</code>/<code>path(...)</code> are detected by prefix (their colons sit inside parentheses) and rejected for now (deferred to M12).</li>
+    <li><strong><code>XISFDataBlock</code></strong>: resolves a block from an element + the whole-file bytes. <code>rawBytes</code> holds the <em>raw, as-stored</em> bytes — base64/hex-decoded for inline/embedded (via the M2 <code>String</code> decoders), or sliced from the attachment region by absolute offset (via the M2 <code>Data.bytes(at:count:)</code>, which is slice-safe). The <code>compression</code>/<code>checksum</code>/<code>byteOrder</code> attributes are <em>captured</em> as raw strings (<code>rawCompression</code>/<code>rawChecksum</code>/<code>rawByteOrder</code>) for the later decompression (M8), checksum (M9) and image (M10) stages; for an embedded block the compression is read from the <code>&lt;Data&gt;</code> child first.</li>
+    <li><strong>Decision — class, not struct (confirmed in review).</strong> Unlike the M6 record structs, <code>XISFDataBlock</code> is a <code>final class</code>, mirroring <code>FITSBlock</code>: M8 will add decompression that is best exposed as a lazily-computed, cached property (so unused images aren't decompressed), which wants reference semantics.</li>
+    <li><strong>Decision — public (changed in review).</strong> <code>XISFDataBlock</code> and <code>XISFDataBlockLocation</code> are <strong>public</strong>, for parity with SwiftFITS's public <code>FITSBlock</code> and the library's prefer-<code>public</code> convention. The element-based initializer stays <code>internal</code> (it takes the internal <code>XISFElement</code>), so instances are produced by the parser, not constructed by consumers — the same shape as <code>XISFProperty</code>. (An earlier draft kept these internal on the grounds that consumers would only ever see resolved <code>Data</code> through <code>XISFImage</code>; the review chose public for API parity and introspection.)</li>
+    <li><strong>Not yet wired in:</strong> per the plan, M7 is the foundation; <code>XISFDataBlock</code> is not yet attached to properties/images (that is M10, which also feeds it the file bytes during init — consistent with the M3 decision that blocks hold their own resolved slices). Tested standalone by constructing it from a parsed element plus synthetic file bytes.</li>
+    <li><strong>Xcode project sync:</strong> added the <code>DataBlock</code> groups and the two source + two test files to the project and build phases.</li>
+    <li><strong>Verification:</strong> <code>swift test</code> → 89 tests pass; <code>xcodebuild … build test</code> → <code>** TEST SUCCEEDED **</code>, 89 tests pass. Tests cover inline base64/hex, embedded base64 (and missing/invalid <code>&lt;Data&gt;</code>), attachment slice and out-of-range, missing location, and raw-attribute capture (including embedded compression from the <code>&lt;Data&gt;</code> child).</li>
+    <li><strong>Post-review (visibility):</strong> per the review decision, promoted <code>XISFDataBlock</code> and <code>XISFDataBlockLocation</code> (and its nested <code>Encoding</code>) from <code>internal</code> to <code>public</code>, with their stored properties now <code>public let</code>. The element-based <code>init(element:fileData:options:)</code> stays <code>internal</code> because it takes the internal <code>XISFElement</code> — the same pattern as the public <code>XISFProperty</code>/<code>XISFFITSKeyword</code>, whose instances are produced by the parser rather than constructed by consumers. <code>init(attribute:)</code> on the location enum is now <code>public</code>. Re-verified green (89 tests).</li>
+  </ul>
+  <div class="field-label">Review comments</div>
+  <ul>
+    <li><strong>Class vs. struct:</strong> confirmed — keep <code>XISFDataBlock</code> as a <code>final class</code> (not a struct), because M8 will add lazily-computed, cached decompressed bytes (so unused images aren't decompressed), which wants reference semantics, exactly like <code>FITSBlock</code>.</li>
+    <li><strong>Visibility:</strong> make <code>XISFDataBlock</code> and <code>XISFDataBlockLocation</code> <strong>public</strong> (not internal), for parity with SwiftFITS's public <code>FITSBlock</code> and the library's "prefer explicit <code>public</code> on the API surface" convention. Applied (see the post-review Implementation note above).</li>
+    <li><strong>Open item for M9 (embedded checksum/byteOrder):</strong> for an embedded block, <code>rawCompression</code> falls back to the <code>&lt;Data&gt;</code> child but <code>rawChecksum</code>/<code>rawByteOrder</code> are read only from the parent element. libXISF reads neither checksum nor byteOrder at all, so the spec is ambiguous; left as-is for now and to be settled in M9, where checksum parsing is actually built and the correct source element for embedded blocks can be pinned with a real fixture.</li>
+  </ul>
 </div>
 
 <div class="milestone">
