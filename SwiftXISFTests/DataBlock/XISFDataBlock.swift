@@ -102,7 +102,8 @@ struct Test_XISFDataBlock
 
         #expect( block.compression?.codec            == .zlib )
         #expect( block.compression?.uncompressedSize == 8 )
-        #expect( block.rawChecksum                   == "sha-1:abcdef" )
+        #expect( block.checksum?.algorithm           == .sha1 )
+        #expect( block.checksum?.digest              == "abcdef" )
         #expect( block.rawByteOrder                  == "little" )
     }
 
@@ -138,6 +139,48 @@ struct Test_XISFDataBlock
     func dataThrowsOnCorruptCompressedStream() async throws
     {
         let block = try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"inline:hex\" compression=\"zlib:132\">789c010203</Image>" ), fileData: Data(), options: .strict )
+
+        try #require( throws: XISFError.self ) { _ = try block.data }
+    }
+
+    @Test
+    func verifiesChecksumOnDataAccessWhenEnabled() throws
+    {
+        let xml   = "<Image location=\"inline:hex\" checksum=\"sha-256:\( Test_XISFChecksum.sha256Hex )\">deadbeef</Image>"
+        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( xml ), fileData: Data(), options: .strict )
+
+        #expect( block.checksum?.algorithm == .sha256 )
+        #expect( try block.data == Data( [ 0xDE, 0xAD, 0xBE, 0xEF ] ) )
+    }
+
+    @Test
+    func throwsOnChecksumMismatchWhenEnabled() async throws
+    {
+        let xml   = "<Image location=\"inline:hex\" checksum=\"sha-256:0000000000000000000000000000000000000000000000000000000000000000\">deadbeef</Image>"
+        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( xml ), fileData: Data(), options: .strict )
+
+        try #require( throws: XISFError.self ) { _ = try block.data }
+    }
+
+    @Test
+    func skipsChecksumWhenVerificationDisabled() throws
+    {
+        let xml   = "<Image location=\"inline:hex\" checksum=\"sha-256:0000000000000000000000000000000000000000000000000000000000000000\">deadbeef</Image>"
+        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( xml ), fileData: Data(), options: .lenient )
+
+        #expect( try block.data == Data( [ 0xDE, 0xAD, 0xBE, 0xEF ] ) )
+    }
+
+    @Test
+    func verifiesEmbeddedChecksumFromDataChild() async throws
+    {
+        // A mismatching checksum on the <Data> child must be consulted (and
+        // fail), proving the checksum is read from the child rather than the
+        // checksum-less parent.
+        let xml   = "<Image location=\"embedded\"><Data encoding=\"hex\" checksum=\"sha-256:0000000000000000000000000000000000000000000000000000000000000000\">deadbeef</Data></Image>"
+        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( xml ), fileData: Data(), options: .strict )
+
+        #expect( block.checksum?.algorithm == .sha256 )
 
         try #require( throws: XISFError.self ) { _ = try block.data }
     }

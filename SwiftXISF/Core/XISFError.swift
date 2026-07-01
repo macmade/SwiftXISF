@@ -67,6 +67,11 @@ public enum XISFError: LocalizedError, CustomStringConvertible, Sendable
     /// problem.
     case dataError( reason: String )
 
+    /// A requested feature or algorithm is not supported by this build or on
+    /// this operating-system version (for example a checksum algorithm that has
+    /// no available implementation); `reason` describes the limitation.
+    case unsupported( reason: String )
+
     /// A human-readable description prefixed with `XISF Error:`.
     public var description: String
     {
@@ -88,6 +93,7 @@ public enum XISFError: LocalizedError, CustomStringConvertible, Sendable
             case .decompressionError( let reason ):  return "Decompression error: \( reason )"
             case .checksumMismatch( let reason ):    return "Checksum mismatch: \( reason )"
             case .dataError( let reason ):           return "Data error: \( reason )"
+            case .unsupported( let reason ):         return "Unsupported: \( reason )"
         }
     }
 }

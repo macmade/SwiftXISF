@@ -45,13 +45,19 @@ public final class XISFDataBlock
     /// The block's compression, or `nil` if it is uncompressed.
     public let compression: XISFCompression?
 
-    /// The raw `checksum` attribute, or `nil` if the block has no checksum.
-    /// Parsed and verified in a later stage.
-    public let rawChecksum: String?
+    /// The block's checksum, or `nil` if it declares none.
+    ///
+    /// When the parsing options request checksum verification, ``data`` verifies
+    /// this against ``rawBytes`` (the stored bytes) on first access.
+    public let checksum: XISFChecksum?
 
     /// The raw `byteOrder` attribute, or `nil` if unspecified. Interpreted when
     /// images are parsed.
     public let rawByteOrder: String?
+
+    /// The parsing options applied, used to decide whether ``data`` verifies the
+    /// block's ``checksum``.
+    private let options: XISFParsingOptions
 
     /// The block's raw, as-stored bytes: decoded from the inline/embedded
     /// encoding, or sliced from the attached region. These bytes are still
@@ -64,6 +70,13 @@ public final class XISFDataBlock
     /// unchanged when the block is uncompressed.
     private lazy var decoded: Result<Data, any Error> = Result
     {
+        // The checksum covers the stored (as-on-disk, still-compressed) bytes,
+        // so it is verified before decompression, and only when requested.
+        if self.options.contains( .verifyChecksums ), let checksum = self.checksum
+        {
+            try checksum.verify( self.rawBytes )
+        }
+
         guard let compression = self.compression
         else
         {
@@ -78,7 +91,9 @@ public final class XISFDataBlock
     ///
     /// Computed once on first access and cached.
     ///
-    /// - Throws: ``XISFError/decompressionError(reason:)`` if decompression fails.
+    /// - Throws: ``XISFError/checksumMismatch(reason:)`` if checksum verification
+    ///   is enabled and fails, or ``XISFError/decompressionError(reason:)`` if
+    ///   decompression fails.
     public var data: Data
     {
         get throws { try self.decoded.get() }
@@ -106,11 +121,9 @@ public final class XISFDataBlock
 
         let location = try XISFDataBlockLocation( attribute: locationString )
 
-        self.location     = location
-        self.rawChecksum  = element.attributes[ "checksum" ]
-        self.rawByteOrder = element.attributes[ "byteOrder" ]
+        self.location = location
 
-        // The element that carries the compression description: for an embedded
+        // The element that carries the data-block attributes: for an embedded
         // block it is the <Data> child (with the parent as a fallback),
         // otherwise the element itself.
         let compressionSource: XISFElement
@@ -150,8 +163,22 @@ public final class XISFDataBlock
 
         let compressionAttribute = compressionSource.attributes[ "compression" ] ?? element.attributes[ "compression" ]
         let subblocksAttribute   = compressionSource.attributes[ "subblocks" ]   ?? element.attributes[ "subblocks" ]
+        let checksumAttribute    = compressionSource.attributes[ "checksum" ]    ?? element.attributes[ "checksum" ]
 
-        self.compression = try compressionAttribute.map { try XISFCompression( attribute: $0, subblocks: subblocksAttribute ) }
+        self.compression  = try compressionAttribute.map { try XISFCompression( attribute: $0, subblocks: subblocksAttribute ) }
+        self.rawByteOrder = compressionSource.attributes[ "byteOrder" ] ?? element.attributes[ "byteOrder" ]
+        self.options      = options
+
+        if let checksumAttribute
+        {
+            // A checksum that fails to parse only matters when verification is
+            // requested; otherwise it is ignored rather than failing the parse.
+            self.checksum = options.contains( .verifyChecksums ) ? try XISFChecksum( attribute: checksumAttribute ) : try? XISFChecksum( attribute: checksumAttribute )
+        }
+        else
+        {
+            self.checksum = nil
+        }
     }
 
     /// Decodes inline/embedded text into bytes.
