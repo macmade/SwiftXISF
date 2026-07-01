@@ -75,6 +75,27 @@ public final class XISFImage: CustomStringConvertible
     /// The image's nested FITS keywords, in document order.
     public let keywords: [ XISFFITSKeyword ]
 
+    /// The image's embedded ICC color profile, or `nil` if none is associated.
+    public let iccProfile: XISFICCProfile?
+
+    /// The image's RGB working space, or `nil` if none is associated (the
+    /// default working space is then sRGB).
+    public let rgbWorkingSpace: XISFRGBWorkingSpace?
+
+    /// The image's display function, or `nil` if none is associated (the
+    /// default is then the identity function).
+    public let displayFunction: XISFDisplayFunction?
+
+    /// The image's color filter array, or `nil` if the image is not mosaiced.
+    public let colorFilterArray: XISFColorFilterArray?
+
+    /// The image's display resolution, or `nil` if none is associated (the
+    /// default is then 72 pixels per inch).
+    public let resolution: XISFResolution?
+
+    /// The image's thumbnail, or `nil` if none is associated.
+    public let thumbnail: XISFThumbnail?
+
     /// The backing pixel data block.
     private let dataBlock: XISFDataBlock
 
@@ -147,6 +168,49 @@ public final class XISFImage: CustomStringConvertible
         self.dataBlock    = dataBlock
         self.properties   = try XISFProperty.parseList( from: element, fileData: fileData, options: options )
         self.keywords     = try element.children( named: "FITSKeyword" ).map { try XISFFITSKeyword( element: $0, options: options ) }
+
+        self.iccProfile       = try XISFImage.optionalChild( element, named: "ICCProfile",       options: options ) { try XISFICCProfile( element: $0, fileData: fileData, options: options ) }
+        self.rgbWorkingSpace  = try XISFImage.optionalChild( element, named: "RGBWorkingSpace",  options: options ) { try XISFRGBWorkingSpace( element: $0, options: options ) }
+        self.displayFunction  = try XISFImage.optionalChild( element, named: "DisplayFunction",  options: options ) { try XISFDisplayFunction( element: $0, options: options ) }
+        self.colorFilterArray = try XISFImage.optionalChild( element, named: "ColorFilterArray", options: options ) { try XISFColorFilterArray( element: $0, options: options ) }
+        self.resolution       = try XISFImage.optionalChild( element, named: "Resolution",       options: options ) { try XISFResolution( element: $0, options: options ) }
+        self.thumbnail        = try XISFImage.optionalChild( element, named: "Thumbnail",        options: options ) { try XISFThumbnail( element: $0, fileData: fileData, options: options ) }
+    }
+
+    /// Parses an optional child metadata element, tolerating a malformed one
+    /// under lenient parsing.
+    ///
+    /// - Parameters:
+    ///   - element: The `<Image>` element whose children to search.
+    ///   - name: The local name of the child element to parse.
+    ///   - options: The parsing options; under
+    ///     ``XISFParsingOptions/allowSpecDeviations`` a child that fails to parse
+    ///     is dropped (returns `nil`) instead of propagating the error.
+    ///   - parse: The closure that parses the first matching child element.
+    /// - Returns: The parsed value, `nil` if no matching child exists, or `nil`
+    ///   if parsing failed under lenient parsing.
+    /// - Throws: any error raised by `parse` under strict parsing.
+    private static func optionalChild<T>( _ element: XISFElement, named name: String, options: XISFParsingOptions, parse: ( XISFElement ) throws -> T ) throws -> T?
+    {
+        guard let child = element.children( named: name ).first
+        else
+        {
+            return nil
+        }
+
+        do
+        {
+            return try parse( child )
+        }
+        catch
+        {
+            if options.contains( .allowSpecDeviations )
+            {
+                return nil
+            }
+
+            throw error
+        }
     }
 
     /// Parses a `bounds` attribute of the form `low:high`.

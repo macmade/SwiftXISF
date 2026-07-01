@@ -200,6 +200,25 @@ struct Test_XISFFile
     }
 
     @Test
+    func exposesUnitLevelMetadata() async throws
+    {
+        let xml  = "<xisf version=\"1.0\" xmlns=\"http://www.pixinsight.com/xisf\"><Metadata><Property id=\"XISF:CreatorApplication\" type=\"String\">PixInsight</Property></Metadata></xisf>"
+        let file = try XISFFile( data: Test_XISFFile.monolithicFile( xml: xml ), options: .strict )
+
+        #expect( file.metadata?.properties.count == 1 )
+        #expect( file.metadata?[ "XISF:CreatorApplication" ]?.value == .string( "PixInsight" ) )
+    }
+
+    @Test
+    func hasNilMetadataWhenAbsent() async throws
+    {
+        let xml  = "<xisf version=\"1.0\" xmlns=\"http://www.pixinsight.com/xisf\"/>"
+        let file = try XISFFile( data: Test_XISFFile.monolithicFile( xml: xml ), options: .strict )
+
+        #expect( file.metadata == nil )
+    }
+
+    @Test
     func rejectsWrongRoot() async throws
     {
         let xml = "<notxisf version=\"1.0\"/>"

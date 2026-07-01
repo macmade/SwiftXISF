@@ -135,4 +135,55 @@ struct Test_XISFImage
         try #require( throws: XISFError.self ) { try Test_XISFImage.image( "<Image sampleFormat=\"UInt8\" location=\"inline:hex\">01</Image>" ) }
         try #require( throws: XISFError.self ) { try Test_XISFImage.image( "<Image geometry=\"1:1:1\" location=\"inline:hex\">01</Image>" ) }
     }
+
+    @Test
+    func attachesChildMetadataElements() throws
+    {
+        let xml = "<Image geometry=\"2:2:1\" sampleFormat=\"UInt8\" location=\"inline:hex\">01020304"
+            + "<ICCProfile location=\"inline:hex\">deadbeef</ICCProfile>"
+            + "<ColorFilterArray pattern=\"GRBG\" width=\"2\" height=\"2\"/>"
+            + "<Resolution horizontal=\"72\" vertical=\"72\"/>"
+            + "<RGBWorkingSpace x=\"0.64:0.30:0.15\" y=\"0.33:0.60:0.06\" Y=\"0.22:0.71:0.06\" gamma=\"2.2\"/>"
+            + "<DisplayFunction m=\"0.5:0.5:0.5:0.5\" s=\"0:0:0:0\" h=\"1:1:1:1\" l=\"0:0:0:0\" r=\"1:1:1:1\"/>"
+            + "<Thumbnail geometry=\"1:1:1\" sampleFormat=\"UInt8\" location=\"inline:hex\">05</Thumbnail>"
+            + "</Image>"
+        let image = try Test_XISFImage.image( xml )
+
+        #expect( try image.iccProfile?.data     == Data( [ 0xDE, 0xAD, 0xBE, 0xEF ] ) )
+        #expect( image.colorFilterArray?.pattern == "GRBG" )
+        #expect( image.resolution?.horizontal    == 72 )
+        #expect( image.rgbWorkingSpace?.gamma     == .exponent( 2.2 ) )
+        #expect( image.displayFunction?.name      == nil )
+        #expect( try image.thumbnail?.data        == Data( [ 0x05 ] ) )
+    }
+
+    @Test
+    func hasNilMetadataElementsWhenAbsent() throws
+    {
+        let image = try Test_XISFImage.image( "<Image geometry=\"2:2:1\" sampleFormat=\"UInt8\" location=\"inline:hex\">01020304</Image>" )
+
+        #expect( image.iccProfile       == nil )
+        #expect( image.colorFilterArray == nil )
+        #expect( image.resolution       == nil )
+        #expect( image.rgbWorkingSpace  == nil )
+        #expect( image.displayFunction  == nil )
+        #expect( image.thumbnail        == nil )
+    }
+
+    @Test
+    func rejectsMalformedChildMetadataWhenStrict() async throws
+    {
+        try #require( throws: XISFError.self )
+        {
+            try Test_XISFImage.image( "<Image geometry=\"2:2:1\" sampleFormat=\"UInt8\" location=\"inline:hex\">01020304<Resolution horizontal=\"72\"/></Image>" )
+        }
+    }
+
+    @Test
+    func dropsMalformedChildMetadataWhenLenient() throws
+    {
+        let image = try Test_XISFImage.image( "<Image geometry=\"2:2:1\" sampleFormat=\"UInt8\" location=\"inline:hex\">01020304<Resolution horizontal=\"72\"/></Image>", options: .lenient )
+
+        #expect( image.resolution == nil )
+    }
 }

@@ -82,6 +82,10 @@ public class XISFFile: CustomStringConvertible
     /// The images contained in the unit, in document order.
     public let images: [ XISFImage ]
 
+    /// The unit-level metadata, or `nil` if the header declares no `Metadata`
+    /// element.
+    public let metadata: XISFMetadata?
+
     /// The first property whose identifier matches, or `nil` if none does.
     ///
     /// - Parameter id: The property identifier to look up.
@@ -215,6 +219,46 @@ public class XISFFile: CustomStringConvertible
         self.properties = try XISFProperty.parseList( from: root, fileData: data, options: options )
         self.keywords   = try root.children( named: "FITSKeyword" ).map { try XISFFITSKeyword( element: $0, options: options ) }
         self.images     = try root.children( named: "Image" ).map { try XISFImage( element: $0, fileData: data, options: options ) }
+        self.metadata   = try XISFFile.parseMetadata( root, fileData: data, options: options )
+    }
+
+    /// Parses the unit-level `<Metadata>` element, if present.
+    ///
+    /// The `Metadata` element is treated as optional: a header without one
+    /// yields `nil`. Under ``XISFParsingOptions/allowSpecDeviations`` a malformed
+    /// `Metadata` element is dropped (returns `nil`) rather than failing the
+    /// whole unit.
+    ///
+    /// - Parameters:
+    ///   - root: The root `xisf` element.
+    ///   - fileData: The complete file bytes, used to resolve data-block backed
+    ///     metadata property values.
+    ///   - options: The parsing options to apply.
+    /// - Returns: The parsed metadata, or `nil` if none is present (or if a
+    ///   malformed one was dropped under lenient parsing).
+    /// - Throws: any ``XISFError`` raised while parsing the metadata under strict
+    ///   parsing.
+    private static func parseMetadata( _ root: XISFElement, fileData: Data, options: XISFParsingOptions ) throws -> XISFMetadata?
+    {
+        guard let element = root.children( named: "Metadata" ).first
+        else
+        {
+            return nil
+        }
+
+        do
+        {
+            return try XISFMetadata( element: element, fileData: fileData, options: options )
+        }
+        catch
+        {
+            if options.contains( .allowSpecDeviations )
+            {
+                return nil
+            }
+
+            throw error
+        }
     }
 
 
