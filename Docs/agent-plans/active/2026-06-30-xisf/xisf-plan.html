@@ -220,8 +220,8 @@
 </div>
 
 <p><strong>Key implementation references:</strong> byte-level reads use little-endian for the header-length
-field and honor each image's <code>byteOrder</code> attribute for sample data (default big-endian per spec — to
-be verified during M9). Decompression uses Apple's <code>Compression</code> framework; checksums use
+field and honor each image's <code>byteOrder</code> attribute for sample data (default <strong>little-endian</strong>
+per spec — verified during M10; an earlier draft assumed big-endian). Decompression uses Apple's <code>Compression</code> framework; checksums use
 <code>CryptoKit</code> (SHA-256/512) with <code>CommonCrypto</code>/Insecure SHA-1 for sha-1, and SHA-3 only if a
 practical implementation is available.</p>
 
@@ -527,7 +527,7 @@ practical implementation is available.</p>
 <div class="phase-label">Phase 5 · Images &amp; metadata</div>
 
 <div class="milestone">
-  <header><span class="num">M10</span><h3>Image element</h3><span class="pill notstarted">Not started</span></header>
+  <header><span class="num">M10</span><h3>Image element</h3><span class="pill completed">Completed</span></header>
   <p><strong>Goal:</strong> Parse <code>&lt;Image&gt;</code> elements into <code>XISFImage</code> with full typed
   metadata and opaque decoded pixel bytes — the central deliverable, analogous to a FITS data segment plus its
   geometry keywords.</p>
@@ -540,9 +540,23 @@ practical implementation is available.</p>
     <li>Vector/matrix property values: now that the data-block pipeline exists, complete <code>XISFProperty</code> for <code>length</code>/<code>rows</code>/<code>columns</code> data-block-backed values (raw bytes + element type).</li>
     <li>Unit tests: planar &amp; normal storage, each color space, each sample format, multi-image files, geometry/size mismatch, vector/matrix properties.</li>
   </ul>
-  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
-  <div class="field-label">Completed</div><p class="placeholder">—</p>
-  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Status</div><p><span class="pill completed">Completed</span></p>
+  <div class="field-label">Completed</div><p>2026-07-01</p>
+  <div class="field-label">Implementation notes</div>
+  <p>Implemented with TDD. New <code>SwiftXISF/Image/</code> group: <code>XISFGeometry</code>, <code>XISFSampleFormat</code>, <code>XISFColorSpace</code>, <code>XISFPixelStorage</code>, <code>XISFByteOrder</code>, <code>XISFImage</code>; plus the vector/matrix property completion and <code>XISFFile.images</code>.</p>
+  <ul>
+    <li><strong>Spec verification (libXISF + spec).</strong> Confirmed: geometry is <code>dims…:channelCount</code> (channel count last); sample sizes UInt8→1 … Float64→8, <code>Complex32</code>→8, <code>Complex64</code>→16; <code>colorSpace</code> default <code>Gray</code>; <code>pixelStorage</code> default <code>Planar</code>; expected size = product(dims) × channels × bytes-per-sample.</li>
+    <li><strong>Plan correction — <code>byteOrder</code> default is little-endian.</strong> The Overview earlier assumed big-endian; the XISF 1.0 spec states data is little-endian <em>by default</em>. <code>XISFByteOrder.defaultValue = .little</code>. (libXISF does not parse <code>byteOrder</code> at all, so it was verified against the spec.)</li>
+    <li><strong>Generalized geometry.</strong> libXISF supports only 2D (exactly 3 components); the spec allows N spatial dimensions plus the channel count. <code>XISFGeometry</code> accepts ≥2 components (≥1 dimension + channel count), all strictly positive, exposing <code>dimensions</code>, <code>channelCount</code>, <code>pixelCount</code> and <code>sampleCount</code>.</li>
+    <li><strong><code>XISFImage</code></strong> (<code>public final class : CustomStringConvertible</code>, not <code>Sendable</code>): typed <code>geometry</code>, <code>sampleFormat</code>, <code>colorSpace</code>, <code>pixelStorage</code>, <code>byteOrder</code>, <code>bounds</code>, and optional <code>imageType</code>/<code>orientation</code>/<code>id</code>/<code>uuid</code>; nested <code>properties</code>/<code>keywords</code>; a private <code>XISFDataBlock</code> exposing pixel bytes via a throwing, lazily-decoded <code>public var data: Data</code>. A class (like the data block) so decoding stays lazy/cached. Defaults for the enumerated attributes are applied when absent; under <code>.lenient</code> an unknown enumerated value falls back to the default instead of erroring.</li>
+    <li><strong>bounds.</strong> Modeled as <code>ClosedRange&lt;Double&gt;?</code> (parsed from <code>low:high</code>). Required for floating-point formats under strict parsing (the spec has no implicit range for reals); not required for complex (representable range is undefined) or integers (implicit range). <code>.lenient</code> tolerates its absence.</li>
+    <li><strong>Size validation without forced decompression.</strong> Added <code>XISFDataBlock.uncompressedSize</code> (the compression's declared uncompressed size, or <code>rawBytes.count</code> if uncompressed), so <code>XISFImage</code> validates <code>uncompressedSize == sampleCount × bytesPerSample</code> cheaply, without triggering the lazy decode. Mismatch is an error under strict, tolerated under <code>.lenient</code>.</li>
+    <li><strong>Vector/matrix property completion.</strong> Added <code>XISFValue.data(Data)</code> (opaque bytes) and gave <code>XISFProperty</code> optional <code>length</code>/<code>rows</code>/<code>columns</code>. <code>XISFProperty.init</code> now takes <code>fileData</code> and resolves vector/matrix/<code>ByteArray</code> values through an <code>XISFDataBlock</code>, decoding eagerly to raw bytes; a <code>String</code> value carried in a data block (a <code>location</code>) is decoded as UTF-8, completing the M6 deferral. <strong>API change (like M8/M9):</strong> the M6 <code>init(element:options:)</code> became <code>init(element:fileData:options:)</code>.</li>
+    <li><strong>Deduplicated property parsing.</strong> Extracted <code>XISFProperty.parseList(from:fileData:options:)</code> (moved out of <code>XISFFile</code>), now used by both <code>XISFFile</code> and <code>XISFImage</code>. Under <code>.lenient</code> it skips a property that fails to parse (best-effort), rather than failing the whole unit; under strict it propagates.</li>
+    <li><strong><code>XISFFile.images</code></strong>: parses the root's direct <code>&lt;Image&gt;</code> children eagerly in <code>init</code> (feeding each the whole-file <code>data</code> for attachment resolution — the M3 model) and exposes <code>public let images: [ XISFImage ]</code>. Two M4-era tests that used a bare <code>&lt;Image/&gt;</code> placeholder (to check header element-name enumeration) were updated to a valid image, and the M6 "skips data-block-backed properties" test became "parses" them.</li>
+    <li><strong>Xcode project sync:</strong> added the <code>Image</code> groups and the six source + six test files to the project and both build phases.</li>
+    <li><strong>Verification:</strong> <code>swift test</code> → 153 tests pass; <code>xcodebuild … build test</code> → <code>** TEST SUCCEEDED **</code>. New tests cover the supporting types, geometry parsing (2D/N-D/minimal/malformed), image parsing (Gray/RGB, planar/normal, defaults, float-with-bounds, bounds-required, size mismatch, identity attributes, nested properties/keywords, missing geometry/sampleFormat), the file-level <code>images</code>, and vector/matrix/ByteArray/data-block-string properties.</li>
+  </ul>
   <div class="field-label">Review comments</div><p class="placeholder">—</p>
 </div>
 

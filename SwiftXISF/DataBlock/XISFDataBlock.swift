@@ -64,6 +64,16 @@ public final class XISFDataBlock
     /// compressed if the block declares a ``compression``.
     public let rawBytes: Data
 
+    /// The size, in bytes, the block decodes to — its ``compression``'s declared
+    /// uncompressed size, or ``rawBytes`` count if the block is uncompressed.
+    ///
+    /// This is known without decompressing, so callers can validate an expected
+    /// size cheaply.
+    public var uncompressedSize: Int
+    {
+        self.compression?.uncompressedSize ?? self.rawBytes.count
+    }
+
     /// The fully decoded bytes, computed lazily and cached on first access (the
     /// result, success or failure, is cached). Decompresses and byte-unshuffles
     /// ``rawBytes`` per the block's ``compression``, or returns ``rawBytes``

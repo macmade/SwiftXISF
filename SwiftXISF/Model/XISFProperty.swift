@@ -30,9 +30,11 @@ import Foundation
 /// `Observation:Time:Start`), a declared ``XISFPropertyType``, a typed
 /// ``XISFValue``, and optional `comment` and `format` attributes. Scalar,
 /// complex and time-point values are carried in the element's `value`
-/// attribute; a string value is the element's character content. Vector and
-/// matrix values, which are carried in data blocks, are completed once the
-/// data-block pipeline exists.
+/// attribute; a string value is the element's character content (or, when a
+/// `location` is present, a data block decoded as UTF-8). Vector, matrix and
+/// `ByteArray` values are carried in a data block and exposed as opaque bytes
+/// (``XISFValue/data(_:)``), with their shape in ``length`` / ``rows`` /
+/// ``columns``.
 public struct XISFProperty: Equatable, Sendable, CustomStringConvertible
 {
     /// The property's hierarchical identifier (colon-separated components).
@@ -50,21 +52,34 @@ public struct XISFProperty: Equatable, Sendable, CustomStringConvertible
     /// The property's optional format specifier.
     public let format: String?
 
+    /// The element count of a vector- or `ByteArray`-typed value, or `nil` for
+    /// other types.
+    public let length: Int?
+
+    /// The row count of a matrix-typed value, or `nil` for other types.
+    public let rows: Int?
+
+    /// The column count of a matrix-typed value, or `nil` for other types.
+    public let columns: Int?
+
     /// Parses a property from a `<Property>` element.
     ///
-    /// Handles the value-attribute types (scalar, complex, time point) and the
-    /// inline-string type. Vector and matrix types, whose values live in data
-    /// blocks, are not handled here.
+    /// Handles the value-attribute types (scalar, complex, time point), string
+    /// values (inline content or a UTF-8 data block), and the data-block-backed
+    /// vector, matrix and `ByteArray` types (exposed as opaque bytes).
     ///
     /// - Parameters:
     ///   - element: The `<Property>` element.
+    ///   - fileData: The complete file bytes, used to resolve an `attachment`
+    ///     data block for a vector/matrix/`ByteArray`/data-block string value.
     ///   - options: The parsing options to apply. Under strict parsing the `id`
-    ///     must be a valid colon-separated identifier; ``XISFParsingOptions/allowSpecDeviations``
-    ///     relaxes that check.
+    ///     must be a valid colon-separated identifier and the dimension
+    ///     attributes must be present; ``XISFParsingOptions/allowSpecDeviations``
+    ///     relaxes those checks.
     /// - Throws: ``XISFError/invalidElement(reason:)`` if a required attribute is
-    ///   missing, the type is unknown or not value-attribute/inline-string, the
-    ///   `id` is invalid, or the value cannot be parsed.
-    internal init( element: XISFElement, options: XISFParsingOptions ) throws
+    ///   missing, the type is unknown, the `id` is invalid, or the value cannot
+    ///   be parsed; or any error raised while resolving a data block.
+    internal init( element: XISFElement, fileData: Data, options: XISFParsingOptions ) throws
     {
         guard let id = element.attributes[ "id" ], id.isEmpty == false
         else
@@ -72,7 +87,9 @@ public struct XISFProperty: Equatable, Sendable, CustomStringConvertible
             throw XISFError.invalidElement( reason: "Property is missing an 'id' attribute" )
         }
 
-        if options.contains( .allowSpecDeviations ) == false, XISFProperty.isValidIdentifier( id ) == false
+        let lenient = options.contains( .allowSpecDeviations )
+
+        if lenient == false, XISFProperty.isValidIdentifier( id ) == false
         {
             throw XISFError.invalidElement( reason: "Invalid property id: '\( id )'" )
         }
@@ -103,13 +120,126 @@ public struct XISFProperty: Equatable, Sendable, CustomStringConvertible
                     throw XISFError.invalidElement( reason: "Property '\( id )' of type \( type.rawValue ) is missing a 'value' attribute" )
                 }
 
-                self.value = try XISFValue.value( fromAttribute: raw, type: type )
+                self.value   = try XISFValue.value( fromAttribute: raw, type: type )
+                self.length  = nil
+                self.rows    = nil
+                self.columns = nil
 
             case .string:
-                self.value = .string( element.content )
+                self.length  = nil
+                self.rows    = nil
+                self.columns = nil
 
-            case .vector, .matrix:
-                throw XISFError.invalidElement( reason: "Property '\( id )' of type \( type.rawValue ) is data-block-backed and not handled here" )
+                if element.attributes[ "location" ] != nil
+                {
+                    // A String value stored in a data block is decoded as UTF-8.
+                    let bytes = try XISFDataBlock( element: element, fileData: fileData, options: options ).data
+
+                    guard let string = String( data: bytes, encoding: .utf8 )
+                    else
+                    {
+                        throw XISFError.invalidElement( reason: "Property '\( id )' String data block is not valid UTF-8" )
+                    }
+
+                    self.value = .string( string )
+                }
+                else
+                {
+                    self.value = .string( element.content )
+                }
+
+            case .vector:
+                self.length  = try XISFProperty.dimension( element, "length", id: id, required: lenient == false )
+                self.rows    = nil
+                self.columns = nil
+                self.value   = .data( try XISFDataBlock( element: element, fileData: fileData, options: options ).data )
+
+            case .matrix:
+                self.length  = nil
+                self.rows    = try XISFProperty.dimension( element, "rows", id: id, required: lenient == false )
+                self.columns = try XISFProperty.dimension( element, "columns", id: id, required: lenient == false )
+                self.value   = .data( try XISFDataBlock( element: element, fileData: fileData, options: options ).data )
+        }
+    }
+
+    /// Parses a non-negative integer dimension attribute (`length`/`rows`/`columns`).
+    ///
+    /// - Parameters:
+    ///   - element: The `<Property>` element.
+    ///   - name: The attribute name to read.
+    ///   - id: The property identifier, for error reporting.
+    ///   - required: Whether a missing attribute is an error.
+    /// - Returns: The parsed dimension, or `nil` if absent and not required.
+    /// - Throws: ``XISFError/invalidElement(reason:)`` if the attribute is
+    ///   required and missing, or present but not a non-negative integer.
+    private static func dimension( _ element: XISFElement, _ name: String, id: String, required: Bool ) throws -> Int?
+    {
+        guard let raw = element.attributes[ name ]
+        else
+        {
+            if required
+            {
+                throw XISFError.invalidElement( reason: "Property '\( id )' is missing the '\( name )' attribute" )
+            }
+
+            return nil
+        }
+
+        guard let value = Int( raw ), value >= 0
+        else
+        {
+            throw XISFError.invalidElement( reason: "Property '\( id )' has an invalid '\( name )' attribute: '\( raw )'" )
+        }
+
+        return value
+    }
+
+    /// Parses the direct-child `<Property>` elements of an element.
+    ///
+    /// All property types are parsed, including the data-block-backed vector,
+    /// matrix and `ByteArray` values. Under strict parsing a property with a
+    /// missing or unknown type — or one that otherwise fails to parse — is an
+    /// error; ``XISFParsingOptions/allowSpecDeviations`` skips it instead, so a
+    /// single malformed property does not fail the whole unit.
+    ///
+    /// - Parameters:
+    ///   - element: The element whose `<Property>` children to parse.
+    ///   - fileData: The complete file bytes, used to resolve data-block-backed
+    ///     property values.
+    ///   - options: The parsing options to apply.
+    /// - Returns: The parsed properties, in document order.
+    /// - Throws: Any ``XISFError`` raised while parsing a property, under strict
+    ///   parsing.
+    internal static func parseList( from element: XISFElement, fileData: Data, options: XISFParsingOptions ) throws -> [ XISFProperty ]
+    {
+        try element.children( named: "Property" ).compactMap
+        {
+            child in
+
+            guard let typeString = child.attributes[ "type" ], XISFPropertyType( rawValue: typeString ) != nil
+            else
+            {
+                if options.contains( .allowSpecDeviations )
+                {
+                    return nil
+                }
+
+                throw XISFError.invalidElement( reason: "Property has a missing or unknown type: '\( child.attributes[ "type" ] ?? "" )'" )
+            }
+
+            do
+            {
+                return try XISFProperty( element: child, fileData: fileData, options: options )
+            }
+            catch
+            {
+                if options.contains( .allowSpecDeviations )
+                {
+                    return nil
+                }
+
+                throw error
+            }
         }
     }
 

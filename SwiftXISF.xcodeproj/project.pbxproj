@@ -39,6 +39,18 @@
 		AB0000000000000000000044 /* XISFCompression.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000043 /* XISFCompression.swift */; };
 		AB0000000000000000000047 /* XISFChecksum.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000046 /* XISFChecksum.swift */; };
 		AB000000000000000000004A /* XISFChecksum.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000049 /* XISFChecksum.swift */; };
+		AB0000000000000000000052 /* XISFGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000004C /* XISFGeometry.swift */; };
+		AB0000000000000000000053 /* XISFSampleFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000004D /* XISFSampleFormat.swift */; };
+		AB0000000000000000000054 /* XISFColorSpace.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000004E /* XISFColorSpace.swift */; };
+		AB0000000000000000000055 /* XISFPixelStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000004F /* XISFPixelStorage.swift */; };
+		AB0000000000000000000056 /* XISFByteOrder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000050 /* XISFByteOrder.swift */; };
+		AB0000000000000000000057 /* XISFImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000051 /* XISFImage.swift */; };
+		AB000000000000000000005F /* XISFGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000059 /* XISFGeometry.swift */; };
+		AB0000000000000000000060 /* XISFSampleFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000005A /* XISFSampleFormat.swift */; };
+		AB0000000000000000000061 /* XISFColorSpace.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000005B /* XISFColorSpace.swift */; };
+		AB0000000000000000000062 /* XISFPixelStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000005C /* XISFPixelStorage.swift */; };
+		AB0000000000000000000063 /* XISFByteOrder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000005D /* XISFByteOrder.swift */; };
+		AB0000000000000000000064 /* XISFImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000005E /* XISFImage.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -134,6 +146,18 @@
 		AB0000000000000000000043 /* XISFCompression.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFCompression.swift; sourceTree = "<group>"; };
 		AB0000000000000000000046 /* XISFChecksum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFChecksum.swift; sourceTree = "<group>"; };
 		AB0000000000000000000049 /* XISFChecksum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFChecksum.swift; sourceTree = "<group>"; };
+		AB000000000000000000004C /* XISFGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFGeometry.swift; sourceTree = "<group>"; };
+		AB000000000000000000004D /* XISFSampleFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFSampleFormat.swift; sourceTree = "<group>"; };
+		AB000000000000000000004E /* XISFColorSpace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFColorSpace.swift; sourceTree = "<group>"; };
+		AB000000000000000000004F /* XISFPixelStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFPixelStorage.swift; sourceTree = "<group>"; };
+		AB0000000000000000000050 /* XISFByteOrder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFByteOrder.swift; sourceTree = "<group>"; };
+		AB0000000000000000000051 /* XISFImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFImage.swift; sourceTree = "<group>"; };
+		AB0000000000000000000059 /* XISFGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFGeometry.swift; sourceTree = "<group>"; };
+		AB000000000000000000005A /* XISFSampleFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFSampleFormat.swift; sourceTree = "<group>"; };
+		AB000000000000000000005B /* XISFColorSpace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFColorSpace.swift; sourceTree = "<group>"; };
+		AB000000000000000000005C /* XISFPixelStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFPixelStorage.swift; sourceTree = "<group>"; };
+		AB000000000000000000005D /* XISFByteOrder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFByteOrder.swift; sourceTree = "<group>"; };
+		AB000000000000000000005E /* XISFImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFImage.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -311,6 +335,7 @@
 				AB0000000000000000000035 /* DataBlock */,
 				AB000000000000000000003F /* Compression */,
 				AB0000000000000000000045 /* Checksum */,
+				AB000000000000000000004B /* Image */,
 				AB000000000000000000000B /* Extensions */,
 			);
 			path = SwiftXISF;
@@ -324,6 +349,7 @@
 				AB000000000000000000003A /* DataBlock */,
 				AB0000000000000000000042 /* Compression */,
 				AB0000000000000000000048 /* Checksum */,
+				AB0000000000000000000058 /* Image */,
 				AB0000000000000000000012 /* Extensions */,
 			);
 			path = SwiftXISFTests;
@@ -399,6 +425,32 @@
 				AB0000000000000000000049 /* XISFChecksum.swift */,
 			);
 			path = Checksum;
+			sourceTree = "<group>";
+		};
+		AB000000000000000000004B /* Image */ = {
+			isa = PBXGroup;
+			children = (
+				AB000000000000000000004C /* XISFGeometry.swift */,
+				AB000000000000000000004D /* XISFSampleFormat.swift */,
+				AB000000000000000000004E /* XISFColorSpace.swift */,
+				AB000000000000000000004F /* XISFPixelStorage.swift */,
+				AB0000000000000000000050 /* XISFByteOrder.swift */,
+				AB0000000000000000000051 /* XISFImage.swift */,
+			);
+			path = Image;
+			sourceTree = "<group>";
+		};
+		AB0000000000000000000058 /* Image */ = {
+			isa = PBXGroup;
+			children = (
+				AB0000000000000000000059 /* XISFGeometry.swift */,
+				AB000000000000000000005A /* XISFSampleFormat.swift */,
+				AB000000000000000000005B /* XISFColorSpace.swift */,
+				AB000000000000000000005C /* XISFPixelStorage.swift */,
+				AB000000000000000000005D /* XISFByteOrder.swift */,
+				AB000000000000000000005E /* XISFImage.swift */,
+			);
+			path = Image;
 			sourceTree = "<group>";
 		};
 		AB0000000000000000000001 /* Core */ = {
@@ -568,6 +620,12 @@
 				AB0000000000000000000039 /* XISFDataBlock.swift in Sources */,
 				AB0000000000000000000041 /* XISFCompression.swift in Sources */,
 				AB0000000000000000000047 /* XISFChecksum.swift in Sources */,
+				AB0000000000000000000052 /* XISFGeometry.swift in Sources */,
+				AB0000000000000000000053 /* XISFSampleFormat.swift in Sources */,
+				AB0000000000000000000054 /* XISFColorSpace.swift in Sources */,
+				AB0000000000000000000055 /* XISFPixelStorage.swift in Sources */,
+				AB0000000000000000000056 /* XISFByteOrder.swift in Sources */,
+				AB0000000000000000000057 /* XISFImage.swift in Sources */,
 				AB0000000000000000000003 /* XISFError.swift in Sources */,
 				AB0000000000000000000005 /* XISFParsingOptions.swift in Sources */,
 				AB000000000000000000000D /* Data.swift in Sources */,
@@ -590,6 +648,12 @@
 				AB000000000000000000003E /* XISFDataBlock.swift in Sources */,
 				AB0000000000000000000044 /* XISFCompression.swift in Sources */,
 				AB000000000000000000004A /* XISFChecksum.swift in Sources */,
+				AB000000000000000000005F /* XISFGeometry.swift in Sources */,
+				AB0000000000000000000060 /* XISFSampleFormat.swift in Sources */,
+				AB0000000000000000000061 /* XISFColorSpace.swift in Sources */,
+				AB0000000000000000000062 /* XISFPixelStorage.swift in Sources */,
+				AB0000000000000000000063 /* XISFByteOrder.swift in Sources */,
+				AB0000000000000000000064 /* XISFImage.swift in Sources */,
 				AB0000000000000000000008 /* XISFError.swift in Sources */,
 				AB000000000000000000000A /* XISFParsingOptions.swift in Sources */,
 				AB0000000000000000000014 /* Data.swift in Sources */,

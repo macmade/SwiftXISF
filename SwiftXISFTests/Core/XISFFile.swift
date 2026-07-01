@@ -144,7 +144,7 @@ struct Test_XISFFile
     @Test
     func exposesTopLevelElementNames() async throws
     {
-        let xml  = "<xisf version=\"1.0\" xmlns=\"http://www.pixinsight.com/xisf\"><Image/><Property id=\"a\" type=\"Int32\" value=\"1\"/><FITSKeyword name=\"A\" value=\"1\"/></xisf>"
+        let xml  = "<xisf version=\"1.0\" xmlns=\"http://www.pixinsight.com/xisf\"><Image geometry=\"1:1:1\" sampleFormat=\"UInt8\" location=\"inline:hex\">01</Image><Property id=\"a\" type=\"Int32\" value=\"1\"/><FITSKeyword name=\"A\" value=\"1\"/></xisf>"
         let file = try XISFFile( data: Test_XISFFile.monolithicFile( xml: xml ), options: .strict )
 
         #expect( file.headerElementNames == [ "Image", "Property", "FITSKeyword" ] )
@@ -166,15 +166,37 @@ struct Test_XISFFile
     }
 
     @Test
-    func skipsDataBlockBackedProperties() async throws
+    func parsesDataBlockBackedProperties() async throws
     {
-        let xml  = "<xisf version=\"1.0\" xmlns=\"http://www.pixinsight.com/xisf\"><Property id=\"V\" type=\"UI8Vector\" location=\"inline:base64\">AAEC</Property><Property id=\"S\" type=\"Int32\" value=\"5\"/></xisf>"
+        let xml  = "<xisf version=\"1.0\" xmlns=\"http://www.pixinsight.com/xisf\"><Property id=\"V\" type=\"UI8Vector\" length=\"3\" location=\"inline:base64\">AAEC</Property><Property id=\"S\" type=\"Int32\" value=\"5\"/></xisf>"
         let file = try XISFFile( data: Test_XISFFile.monolithicFile( xml: xml ), options: .strict )
 
-        // The vector property is data-block-backed and completed in a later milestone.
-        #expect( file.properties.count == 1 )
+        // Vector/matrix properties are resolved through the data-block pipeline.
+        #expect( file.properties.count == 2 )
         #expect( file[ "S" ]?.value    == .integer( 5 ) )
-        #expect( file[ "V" ]           == nil )
+        #expect( file[ "V" ]?.type     == .ui8Vector )
+        #expect( file[ "V" ]?.length   == 3 )
+        #expect( file[ "V" ]?.value    == .data( Data( [ 0x00, 0x01, 0x02 ] ) ) )
+    }
+
+    @Test
+    func exposesImages() async throws
+    {
+        let xml  = "<xisf version=\"1.0\" xmlns=\"http://www.pixinsight.com/xisf\"><Image geometry=\"2:2:1\" sampleFormat=\"UInt8\" location=\"inline:hex\">01020304</Image></xisf>"
+        let file = try XISFFile( data: Test_XISFFile.monolithicFile( xml: xml ), options: .strict )
+
+        #expect( file.images.count            == 1 )
+        #expect( file.images.first?.sampleFormat == .uInt8 )
+        #expect( try file.images.first?.data  == Data( [ 0x01, 0x02, 0x03, 0x04 ] ) )
+    }
+
+    @Test
+    func exposesMultipleImages() async throws
+    {
+        let xml  = "<xisf version=\"1.0\" xmlns=\"http://www.pixinsight.com/xisf\"><Image geometry=\"1:1:1\" sampleFormat=\"UInt8\" location=\"inline:hex\">01</Image><Image geometry=\"1:1:1\" sampleFormat=\"UInt8\" location=\"inline:hex\">02</Image></xisf>"
+        let file = try XISFFile( data: Test_XISFFile.monolithicFile( xml: xml ), options: .strict )
+
+        #expect( file.images.count == 2 )
     }
 
     @Test
@@ -213,7 +235,7 @@ struct Test_XISFFile
     @Test
     func parsesNonNamespacedHeader() async throws
     {
-        let xml  = "<xisf version=\"1.0\"><Image/></xisf>"
+        let xml  = "<xisf version=\"1.0\"><Image geometry=\"1:1:1\" sampleFormat=\"UInt8\" location=\"inline:hex\">01</Image></xisf>"
         let file = try XISFFile( data: Test_XISFFile.monolithicFile( xml: xml ), options: .strict )
 
         #expect( file.headerElementNames == [ "Image" ] )

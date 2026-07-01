@@ -72,15 +72,15 @@ public class XISFFile: CustomStringConvertible
         self.root.children.map { $0.name }
     }
 
-    /// The unit-level (top-level) properties, in document order.
-    ///
-    /// Vector- and matrix-valued properties, whose values are carried in data
-    /// blocks, are completed once the data-block pipeline exists; they are not
-    /// yet included here.
+    /// The unit-level (top-level) properties, in document order, including
+    /// data-block-backed vector, matrix and `ByteArray` values.
     public let properties: [ XISFProperty ]
 
     /// The unit-level (top-level) embedded FITS keywords, in document order.
     public let keywords: [ XISFFITSKeyword ]
+
+    /// The images contained in the unit, in document order.
+    public let images: [ XISFImage ]
 
     /// The first property whose identifier matches, or `nil` if none does.
     ///
@@ -212,56 +212,11 @@ public class XISFFile: CustomStringConvertible
 
         self.headerXML  = headerXML
         self.root       = root
-        self.properties = try XISFFile.parseProperties( from: root, options: options )
+        self.properties = try XISFProperty.parseList( from: root, fileData: data, options: options )
         self.keywords   = try root.children( named: "FITSKeyword" ).map { try XISFFITSKeyword( element: $0, options: options ) }
+        self.images     = try root.children( named: "Image" ).map { try XISFImage( element: $0, fileData: data, options: options ) }
     }
 
-    /// Parses the direct-child `<Property>` elements of an element.
-    ///
-    /// Vector- and matrix-valued properties (and string values carried in data
-    /// blocks) are data-block-backed and completed in a later milestone, so they
-    /// are skipped here. Under strict parsing a property with a missing or
-    /// unknown type is an error; ``XISFParsingOptions/allowSpecDeviations`` skips
-    /// it instead.
-    ///
-    /// - Parameters:
-    ///   - element: The element whose `<Property>` children to parse.
-    ///   - options: The parsing options to apply.
-    /// - Returns: The parsed properties, in document order.
-    /// - Throws: Any ``XISFError`` raised while parsing a property.
-    private static func parseProperties( from element: XISFElement, options: XISFParsingOptions ) throws -> [ XISFProperty ]
-    {
-        try element.children( named: "Property" ).compactMap
-        {
-            child in
-
-            guard let typeString = child.attributes[ "type" ], let type = XISFPropertyType( rawValue: typeString )
-            else
-            {
-                if options.contains( .allowSpecDeviations )
-                {
-                    return nil
-                }
-
-                throw XISFError.invalidElement( reason: "Property has a missing or unknown type: '\( child.attributes[ "type" ] ?? "" )'" )
-            }
-
-            // Data-block-backed values are completed once the data-block
-            // pipeline exists: vectors and matrices always, and strings when
-            // carried in a data block rather than inline.
-            if type.category == .vector || type.category == .matrix
-            {
-                return nil
-            }
-
-            if type.category == .string, child.attributes[ "location" ] != nil
-            {
-                return nil
-            }
-
-            return try XISFProperty( element: child, options: options )
-        }
-    }
 
     /// Validates the root element of a parsed XISF header.
     ///

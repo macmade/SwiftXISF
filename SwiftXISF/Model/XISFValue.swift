@@ -26,10 +26,10 @@ import Foundation
 
 /// The typed value of an XISF property.
 ///
-/// This milestone models the scalar value categories — boolean, signed and
-/// unsigned integers, floating-point, complex, string and time-point. Vector
-/// and matrix values, which are carried in data blocks, are added once the
-/// data-block pipeline exists.
+/// This models the scalar value categories — boolean, signed and unsigned
+/// integers, floating-point, complex, string and time-point — plus ``data(_:)``,
+/// the opaque decoded bytes of a vector-, matrix- or `ByteArray`-typed value
+/// carried in a data block.
 ///
 /// Equality treats two floating-point payloads of `NaN` as equal, departing
 /// from IEEE 754, so comparing or diffing headers does not report a spurious
@@ -60,6 +60,11 @@ public enum XISFValue: Equatable, Hashable, Sendable
     /// A date/time instant.
     case timePoint( Date )
 
+    /// The opaque decoded bytes of a vector-, matrix- or `ByteArray`-typed value
+    /// carried in a data block. The property's type and dimensions describe how
+    /// to interpret them.
+    case data( Data )
+
     /// The type discriminator of an ``XISFValue``, independent of any payload.
     public enum Kind: CustomStringConvertible, Sendable
     {
@@ -84,6 +89,9 @@ public enum XISFValue: Equatable, Hashable, Sendable
         /// The kind of ``XISFValue/timePoint(_:)``.
         case timePoint
 
+        /// The kind of ``XISFValue/data(_:)``.
+        case data
+
         /// A human-readable name for the kind.
         public var description: String
         {
@@ -96,6 +104,7 @@ public enum XISFValue: Equatable, Hashable, Sendable
                 case .complex:         return "Complex"
                 case .string:          return "String"
                 case .timePoint:       return "Time Point"
+                case .data:            return "Data"
             }
         }
     }
@@ -112,6 +121,7 @@ public enum XISFValue: Equatable, Hashable, Sendable
             case .complex:         return .complex
             case .string:          return .string
             case .timePoint:       return .timePoint
+            case .data:            return .data
         }
     }
 
@@ -136,6 +146,7 @@ public enum XISFValue: Equatable, Hashable, Sendable
             case ( .float(           let a ), .float(           let b ) ): return XISFValue.floatsEqual( a, b )
             case ( .string(          let a ), .string(          let b ) ): return a == b
             case ( .timePoint(       let a ), .timePoint(       let b ) ): return a == b
+            case ( .data(            let a ), .data(            let b ) ): return a == b
 
             case ( .complex( let aReal, let aImaginary ), .complex( let bReal, let bImaginary ) ):
                 return XISFValue.floatsEqual( aReal, bReal ) && XISFValue.floatsEqual( aImaginary, bImaginary )
@@ -169,6 +180,8 @@ public enum XISFValue: Equatable, Hashable, Sendable
             case .string( let value ):          hasher.combine( 5 )
                 hasher.combine( value )
             case .timePoint( let value ):       hasher.combine( 6 )
+                hasher.combine( value )
+            case .data( let value ):            hasher.combine( 7 )
                 hasher.combine( value )
         }
     }
@@ -245,6 +258,12 @@ public enum XISFValue: Equatable, Hashable, Sendable
     public var timePoint: Date?
     {
         if case .timePoint( let value ) = self { value } else { nil }
+    }
+
+    /// The opaque bytes payload, or `nil` if this is not a ``data(_:)`` value.
+    public var data: Data?
+    {
+        if case .data( let value ) = self { value } else { nil }
     }
 
     /// Parses a value from a `<Property>` element's `value` attribute string,
