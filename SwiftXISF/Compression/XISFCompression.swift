@@ -25,6 +25,11 @@
 import Compression
 import Foundation
 
+// libzstd is an implementation detail used only by the private zstd decode path,
+// so it is imported non-publicly to keep it out of the module's public interface
+// (and thus out of the library-evolution `.swiftinterface`).
+internal import libzstd
+
 /// The compression applied to a data block, parsed from its `compression`
 /// (and optional `subblocks`) attribute.
 ///
@@ -38,14 +43,12 @@ import Foundation
 /// the single stream), concatenates the results, validates the total length
 /// against ``uncompressedSize``, and reverses any byte-shuffling.
 ///
-/// The `zstd` codec is recognized by the format but requires an external
-/// dependency and is not yet supported; parsing it throws.
+/// The `zlib` and `lz4`/`lz4hc` codecs are decoded through Apple's `Compression`
+/// framework; `zstd` is decoded through the upstream Zstandard C library, the one
+/// XISF codec Apple's framework does not provide.
 public struct XISFCompression: Equatable, Sendable, CustomStringConvertible
 {
     /// A supported compression codec.
-    ///
-    /// `zstd` is intentionally absent: it is a valid XISF codec but needs an
-    /// external dependency and is deferred to a later milestone.
     public enum Codec: String, Equatable, Sendable, CaseIterable
     {
         /// The zlib codec (RFC 1950 zlib-wrapped DEFLATE).
@@ -56,6 +59,9 @@ public struct XISFCompression: Equatable, Sendable, CustomStringConvertible
 
         /// The LZ4-HC codec; its streams are decoded by the same LZ4 decoder.
         case lz4hc
+
+        /// The Zstandard codec (decoded through the upstream libzstd).
+        case zstd
     }
 
     /// One independently-compressed sub-block of a split-compression stream.
@@ -93,7 +99,7 @@ public struct XISFCompression: Equatable, Sendable, CustomStringConvertible
     ///     `<codec>[+sh]:<uncompressed-size>[:<item-size>]`.
     ///   - subblocksAttribute: The raw `subblocks` attribute value, or `nil`.
     /// - Throws: ``XISFError/decompressionError(reason:)`` if the attribute is
-    ///   malformed, names an unknown codec, or names `zstd` (not yet supported).
+    ///   malformed or names an unknown codec.
     public init( attribute: String, subblocks subblocksAttribute: String? = nil ) throws
     {
         let parts = attribute.split( separator: ":", omittingEmptySubsequences: false ).map( String.init )
@@ -110,11 +116,6 @@ public struct XISFCompression: Equatable, Sendable, CustomStringConvertible
         if isByteShuffled
         {
             codecName = String( codecName.dropLast( 3 ) )
-        }
-
-        if codecName == "zstd"
-        {
-            throw XISFError.decompressionError( reason: "The zstd codec is not yet supported (deferred to a later milestone)" )
         }
 
         guard let codec = Codec( rawValue: codecName )
@@ -269,7 +270,61 @@ public struct XISFCompression: Equatable, Sendable, CustomStringConvertible
         {
             case .zlib:        return try XISFCompression.inflateZlib( input, expectedSize: expectedSize )
             case .lz4, .lz4hc: return try XISFCompression.rawDecode( input, expectedSize: expectedSize, algorithm: COMPRESSION_LZ4_RAW )
+            case .zstd:        return try XISFCompression.inflateZstd( input, expectedSize: expectedSize )
         }
+    }
+
+    /// Decompresses a Zstandard stream through the upstream libzstd.
+    ///
+    /// - Parameters:
+    ///   - input: The zstd-compressed bytes.
+    ///   - expectedSize: The expected decompressed size, in bytes.
+    /// - Returns: The decompressed bytes.
+    /// - Throws: ``XISFError/decompressionError(reason:)`` if the stream is empty,
+    ///   libzstd reports an error, or the decompressed length differs from
+    ///   `expectedSize`.
+    private static func inflateZstd( _ input: Data, expectedSize: Int ) throws -> Data
+    {
+        guard expectedSize > 0
+        else
+        {
+            return Data()
+        }
+
+        guard input.isEmpty == false
+        else
+        {
+            throw XISFError.decompressionError( reason: "Cannot decompress an empty zstd stream" )
+        }
+
+        var output  = Data( count: expectedSize )
+        let written = output.withUnsafeMutableBytes
+        {
+            ( destination: UnsafeMutableRawBufferPointer ) -> Int in
+
+            input.withUnsafeBytes
+            {
+                ( source: UnsafeRawBufferPointer ) -> Int in
+
+                guard let destinationBase = destination.baseAddress, let sourceBase = source.baseAddress
+                else
+                {
+                    return 0
+                }
+
+                let result = ZSTD_decompress( destinationBase, expectedSize, sourceBase, source.count )
+
+                return ZSTD_isError( result ) != 0 ? -1 : result
+            }
+        }
+
+        guard written == expectedSize
+        else
+        {
+            throw XISFError.decompressionError( reason: "zstd decompression produced \( written ) bytes, expected \( expectedSize )" )
+        }
+
+        return output
     }
 
     /// Decompresses an RFC 1950 zlib stream.

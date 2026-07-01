@@ -628,7 +628,7 @@ practical implementation is available.</p>
 </div>
 
 <div class="milestone">
-  <header><span class="num">M13</span><h3>zstd decompression (deferred · external dependency)</h3><span class="pill notstarted">Not started</span></header>
+  <header><span class="num">M13</span><h3>zstd decompression (deferred · external dependency)</h3><span class="pill completed">Completed</span></header>
   <p><strong>Goal:</strong> Add <code>zstd</code> / <code>zstd+sh</code> support, the only feature requiring an
   external dependency. <strong>Requires dependency sign-off before starting</strong> (see Notes).</p>
   <div class="field-label">Tasks</div>
@@ -638,9 +638,18 @@ practical implementation is available.</p>
     <li>Keep the dependency optional/isolated so the rest of the library still builds dependency-free if zstd is excluded (consider a separate product/trait if practical).</li>
     <li>Unit tests: zstd round-trip with and without shuffling.</li>
   </ul>
-  <div class="field-label">Status</div><p><span class="pill notstarted">Not started</span></p>
-  <div class="field-label">Completed</div><p class="placeholder">—</p>
-  <div class="field-label">Implementation notes</div><p class="placeholder">To be filled in as work progresses.</p>
+  <div class="field-label">Status</div><p><span class="pill completed">Completed</span></p>
+  <div class="field-label">Completed</div><p>2026-07-01</p>
+  <div class="field-label">Implementation notes</div>
+  <p>Implemented with TDD.</p>
+  <ul>
+    <li><strong>Dependency (signed off).</strong> Added <a href="https://github.com/facebook/zstd">facebook/zstd</a> <strong>v1.5.7</strong> (up-to-next-major) — the official upstream Zstandard, which ships a <code>Package.swift</code> exposing a <code>libzstd</code> C-library product (BSD-licensed via <code>LICENSE</code>, plus <code>COPYING</code> GPLv2 for dual-licensing). Verified that Apple's <code>Compression</code> framework has no <code>COMPRESSION_ZSTD</code>, the SDK ships no <code>zstd.h</code>, and there is no system <code>libzstd</code>, so an external dependency is genuinely required.</li>
+    <li><strong>Wiring decision (user-directed, deviates from the plan task).</strong> The plan suggested keeping zstd <em>isolated</em> in a separate product so the core stays dependency-free. <strong>The user chose to add zstd directly to the core <code>SwiftXISF</code> target instead</strong> (simpler code and Xcode-project sync). Consequence: <code>SwiftXISF</code> now depends on <code>libzstd</code> for everyone — it is no longer dependency-free. <code>XISFCompression</code> uses <code>internal import libzstd</code> so the dependency stays an implementation detail and does not leak into the public module interface (<code>.swiftinterface</code>).</li>
+    <li><strong><code>XISFCompression</code>.</strong> Added the <code>zstd</code> <code>Codec</code> case and removed the previous "deferred" rejection, so <code>zstd</code> / <code>zstd+sh</code> (and subblocks) parse like the other codecs. Decoding calls <code>ZSTD_decompress</code> into a buffer of the declared uncompressed size, checking <code>ZSTD_isError</code> and the exact output length; the existing shuffle/subblock/length-validation pipeline is unchanged.</li>
+    <li><strong>Test fixtures — real encoder.</strong> The round-trip fixtures are genuine streams produced by the upstream <code>zstd</code> CLI (v1.5.7): a plain stream of the shared reference payload, and a <code>+sh</code> stream whose 32 bytes were forward-shuffled (item size 2) before compression — proving interoperability with a real zstd producer, not an Apple/self round-trip.</li>
+    <li><strong>Xcode project sync + module workarounds.</strong> Added the <code>XCRemoteSwiftPackageReference</code> (facebook/zstd), the <code>libzstd</code> <code>XCSwiftPackageProductDependency</code> on the <code>SwiftXISF</code> target, and the framework link. Two build-setting workarounds were needed for Xcode 26's <em>explicitly-built modules</em>, which reject zstd's headers (the headers use configuration macros like <code>ZSTDLIB_VISIBLE</code> that the explicit-module importer flags as errors): <code>SWIFT_ENABLE_EXPLICIT_MODULES = NO</code> on both targets, and <code>BUILD_LIBRARY_FOR_DISTRIBUTION = NO</code> on the test target (a test bundle never ships a resilient interface, so it must not verify one that transitively references <code>libzstd</code>). SwiftPM builds needed neither. <code>Package.resolved</code> is <code>.gitignore</code>d (a library does not pin its resolved versions).</li>
+    <li><strong>Verification:</strong> <code>swift test</code> → 204 tests pass; <code>xcodebuild -scheme SwiftXISF -configuration Debug -destination 'platform=macOS' build test</code> → <code>** BUILD SUCCEEDED **</code> / <code>** TEST SUCCEEDED **</code>, 0 failed. New tests: <code>zstd</code>/<code>zstd+sh</code> attribute parsing, and real-fixture round-trips with and without byte-shuffling.</li>
+  </ul>
   <div class="field-label">Review comments</div><p class="placeholder">—</p>
 </div>
 

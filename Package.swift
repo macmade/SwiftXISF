@@ -31,9 +31,17 @@ let package = Package(
     products: [
         .library( name: "SwiftXISF", targets: [ "SwiftXISF" ] ),
     ],
+    dependencies: [
+        // zstd is the one XISF codec Apple's Compression framework does not
+        // provide, so it is decoded through the upstream Zstandard C library.
+        .package( url: "https://github.com/facebook/zstd.git", from: "1.5.7" ),
+    ],
     targets: [
         .target(
             name: "SwiftXISF",
+            dependencies: [
+                .product( name: "libzstd", package: "zstd" ),
+            ],
             path: "SwiftXISF"
         ),
         .testTarget(

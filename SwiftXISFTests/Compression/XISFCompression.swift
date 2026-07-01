@@ -43,6 +43,12 @@ struct Test_XISFCompression
     static let lz4Sh2Hex    = "f01100020406080a0c0e10121416181a1c1e01030507090b0d0f11131517191b1d1f"
     static let subblocksHex = "789c05c1c10d80300805d055fe022ee000269ebd78b662c4a68040d5f17d6f9d9709459b3945b00a5cbbec433a1b922247e449b83b978acdf5151cfae1eacd02fa90237f3080186d789ccb4855c849acaa5448c94f573030343236313533b7b05428c94855282ccd4cce56482aca2fcf5348cbaf50c82acd2d2856c82f4b2d024bc3b40100c82f164e"
 
+    // zstd fixtures produced by the upstream `zstd` CLI (v1.5.7): a plain stream
+    // of the reference payload, and a `+sh` stream whose 32 bytes were
+    // forward-shuffled (item size 2) before compression.
+    static let zstdTextHex  = "28b52ffd0458f5020034055849534620636f6d7072657373696f6e20726f756e642d7472697020746573743a2074686520717569636b2062726f776e20666f78206a756d7073206f7665726c617a7920646f6720303132333435363738390200d3ca0440082a0a4ebdb5a9"
+    static let zstdSh2Hex   = "28b52ffd045801010000020406080a0c0e10121416181a1c1e01030507090b0d0f11131517191b1d1f2df1f06c"
+
     /// The 32-byte shuffle payload: the bytes 0...31.
     static let shufflePayload = Data( ( 0 ..< 32 ).map { UInt8( $0 ) } )
 
@@ -96,12 +102,11 @@ struct Test_XISFCompression
     }
 
     @Test
-    func rejectsZstdAsDeferred() async throws
+    func parsesZstdCodec() throws
     {
-        // zstd is a real XISF codec but requires an external dependency (M13);
-        // it must fail cleanly rather than be reported as an unknown codec.
-        try #require( throws: XISFError.self ) { try XISFCompression( attribute: "zstd:10" ) }
-        try #require( throws: XISFError.self ) { try XISFCompression( attribute: "zstd+sh:10:2" ) }
+        #expect( try XISFCompression( attribute: "zstd:10" ).codec        == .zstd )
+        #expect( try XISFCompression( attribute: "zstd+sh:10:2" ).codec    == .zstd )
+        #expect( try XISFCompression( attribute: "zstd+sh:10:2" ).itemSize == 2 )
     }
 
     @Test
@@ -142,6 +147,23 @@ struct Test_XISFCompression
         let input    = try Test_XISFCompression.lz4hcTextHex.xisfHexDecodedData()
 
         #expect( try XISFCompression( attribute: "lz4hc:132" ).decompress( input ) == original )
+    }
+
+    @Test
+    func decompressesZstd() throws
+    {
+        let original = try Test_XISFCompression.textHex.xisfHexDecodedData()
+        let input    = try Test_XISFCompression.zstdTextHex.xisfHexDecodedData()
+
+        #expect( try XISFCompression( attribute: "zstd:132" ).decompress( input ) == original )
+    }
+
+    @Test
+    func decompressesZstdWithByteShuffling() throws
+    {
+        let input = try Test_XISFCompression.zstdSh2Hex.xisfHexDecodedData()
+
+        #expect( try XISFCompression( attribute: "zstd+sh:32:2" ).decompress( input ) == Test_XISFCompression.shufflePayload )
     }
 
     @Test
