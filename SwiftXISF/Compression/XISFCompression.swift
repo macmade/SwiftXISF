@@ -110,13 +110,9 @@ public struct XISFCompression: Equatable, Sendable, CustomStringConvertible
             throw XISFError.decompressionError( reason: "Malformed compression attribute: '\( attribute )'" )
         }
 
-        var codecName     = parts[ 0 ]
-        let isByteShuffled = codecName.hasSuffix( "+sh" )
-
-        if isByteShuffled
-        {
-            codecName = String( codecName.dropLast( 3 ) )
-        }
+        let rawCodecName   = parts[ 0 ]
+        let isByteShuffled = rawCodecName.hasSuffix( "+sh" )
+        let codecName      = isByteShuffled ? String( rawCodecName.dropLast( 3 ) ) : rawCodecName
 
         guard let codec = Codec( rawValue: codecName )
         else
