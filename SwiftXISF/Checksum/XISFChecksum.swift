@@ -156,7 +156,8 @@ public struct XISFChecksum: Equatable, Sendable, CustomStringConvertible
     /// - Returns: The digest as a lowercase hexadecimal string.
     /// - Throws: ``XISFError/unsupported(reason:)`` if CryptoKit is unavailable
     ///   (below macOS 10.15 / iOS 13), or if a SHA-3 algorithm is requested on an
-    ///   operating system that does not provide it (below macOS 26 / iOS 26).
+    ///   operating system that does not provide it (below macOS 26 / iOS 26) or in
+    ///   a build made against an SDK that predates the CryptoKit SHA-3 types.
     private func computedDigest( _ data: Data ) throws -> String
     {
         // CryptoKit is unavailable below macOS 10.15 / iOS 13. Guarding here (so
@@ -175,23 +176,32 @@ public struct XISFChecksum: Equatable, Sendable, CustomStringConvertible
             case .sha256: return XISFChecksum.hexString( SHA256.hash( data: data ) )
             case .sha512: return XISFChecksum.hexString( SHA512.hash( data: data ) )
 
+            // The SHA3_256 / SHA3_512 types were introduced in the macOS 26 SDK
+            // (the Swift 6.2 toolchain), so they cannot even be referenced when
+            // building against an older SDK — a runtime #available guard is not
+            // enough. The #if compiler check compiles the SHA-3 path in only when
+            // the toolchain provides the symbols; on older toolchains, and at
+            // runtime below macOS 26, verification degrades to a clean
+            // "unsupported" error.
             case .sha3_256:
-                guard #available( macOS 26.0, iOS 26.0, tvOS 26.0, watchOS 26.0, * )
-                else
+                #if compiler(>=6.2)
+                if #available( macOS 26.0, iOS 26.0, tvOS 26.0, watchOS 26.0, * )
                 {
-                    throw XISFError.unsupported( reason: "sha3-256 checksum verification requires macOS 26 / iOS 26 or newer" )
+                    return XISFChecksum.hexString( SHA3_256.hash( data: data ) )
                 }
+                #endif
 
-                return XISFChecksum.hexString( SHA3_256.hash( data: data ) )
+                throw XISFError.unsupported( reason: "sha3-256 checksum verification requires macOS 26 / iOS 26 or newer, built with the matching SDK" )
 
             case .sha3_512:
-                guard #available( macOS 26.0, iOS 26.0, tvOS 26.0, watchOS 26.0, * )
-                else
+                #if compiler(>=6.2)
+                if #available( macOS 26.0, iOS 26.0, tvOS 26.0, watchOS 26.0, * )
                 {
-                    throw XISFError.unsupported( reason: "sha3-512 checksum verification requires macOS 26 / iOS 26 or newer" )
+                    return XISFChecksum.hexString( SHA3_512.hash( data: data ) )
                 }
+                #endif
 
-                return XISFChecksum.hexString( SHA3_512.hash( data: data ) )
+                throw XISFError.unsupported( reason: "sha3-512 checksum verification requires macOS 26 / iOS 26 or newer, built with the matching SDK" )
         }
     }
 
