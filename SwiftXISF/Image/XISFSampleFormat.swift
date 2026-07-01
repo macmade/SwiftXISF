@@ -29,7 +29,7 @@ import Foundation
 /// The raw value of each case is the exact spec string. XISF 1.0 defines eight
 /// formats: the unsigned integers, the two floating-point formats, and the two
 /// complex formats.
-public enum XISFSampleFormat: String, Equatable, Sendable, CaseIterable
+public enum XISFSampleFormat: String, Equatable, Sendable, CaseIterable, CustomStringConvertible
 {
     /// 8-bit unsigned integer samples.
     case uInt8 = "UInt8"
@@ -86,5 +86,11 @@ public enum XISFSampleFormat: String, Equatable, Sendable, CaseIterable
     public var isComplex: Bool
     {
         self == .complex32 || self == .complex64
+    }
+
+    /// The spec token for this sample format (its raw value).
+    public var description: String
+    {
+        self.rawValue
     }
 }

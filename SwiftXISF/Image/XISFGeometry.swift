@@ -30,7 +30,7 @@ import Foundation
 /// channel count and the values before it are the image's spatial dimensions,
 /// most-significant first — for a 2D image, `width:height:channels`. At least
 /// one spatial dimension and the channel count are required.
-public struct XISFGeometry: Equatable, Sendable
+public struct XISFGeometry: Equatable, Sendable, CustomStringConvertible
 {
     /// The spatial dimensions, most-significant first (for a 2D image, width
     /// then height). Always at least one, all strictly positive.
@@ -81,5 +81,12 @@ public struct XISFGeometry: Equatable, Sendable
 
         self.dimensions   = Array( values.dropLast() )
         self.channelCount = values[ values.count - 1 ]
+    }
+
+    /// The `geometry` attribute form: the dimensions and channel count joined
+    /// with colons (for example `2159:3839:3`).
+    public var description: String
+    {
+        ( self.dimensions + [ self.channelCount ] ).map { String( $0 ) }.joined( separator: ":" )
     }
 }

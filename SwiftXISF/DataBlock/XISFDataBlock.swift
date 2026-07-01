@@ -41,7 +41,7 @@ import Foundation
 /// computed once and cached. Because that caching mutates on read, it is not
 /// thread-safe and not `Sendable`: a block must not be read concurrently from
 /// multiple threads.
-public final class XISFDataBlock
+public final class XISFDataBlock: CustomStringConvertible
 {
     /// Where the block's bytes are stored.
     public let location: XISFDataBlockLocation
@@ -139,6 +139,20 @@ public final class XISFDataBlock
     public var data: Data
     {
         get throws { try self.decoded.get() }
+    }
+
+    /// A single-line, human-readable summary of the block.
+    ///
+    /// Reports the location, compression and checksum without reading the block's
+    /// bytes (so it never triggers external resolution or decompression); the
+    /// decoded size is shown when it is known cheaply.
+    public var description: String
+    {
+        let compression = self.compression.map { $0.description } ?? "none"
+        let checksum    = self.checksum.map { $0.description } ?? "none"
+        let size        = self.uncompressedSize.map { String( $0 ) } ?? "unknown"
+
+        return "XISFDataBlock { location: \( self.location ), compression: \( compression ), checksum: \( checksum ), uncompressedSize: \( size ) }"
     }
 
     /// Resolves a data block from an element that declares a `location`.

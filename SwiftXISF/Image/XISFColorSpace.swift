@@ -25,7 +25,7 @@
 import Foundation
 
 /// The color space of an XISF image, from its `colorSpace` attribute.
-public enum XISFColorSpace: String, Equatable, Sendable, CaseIterable
+public enum XISFColorSpace: String, Equatable, Sendable, CaseIterable, CustomStringConvertible
 {
     /// A single-channel grayscale image.
     case gray = "Gray"
@@ -38,4 +38,10 @@ public enum XISFColorSpace: String, Equatable, Sendable, CaseIterable
 
     /// The default color space when the attribute is absent (`Gray`).
     public static let defaultValue: XISFColorSpace = .gray
+
+    /// The spec token for this color space (its raw value).
+    public var description: String
+    {
+        self.rawValue
+    }
 }

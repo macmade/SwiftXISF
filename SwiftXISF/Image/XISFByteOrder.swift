@@ -29,7 +29,7 @@ import Foundation
 ///
 /// SwiftXISF exposes pixel bytes opaquely, so this is metadata the consumer
 /// uses to interpret multi-byte samples.
-public enum XISFByteOrder: String, Equatable, Sendable, CaseIterable
+public enum XISFByteOrder: String, Equatable, Sendable, CaseIterable, CustomStringConvertible
 {
     /// Big-endian (most significant byte first).
     case big = "big"
@@ -42,4 +42,10 @@ public enum XISFByteOrder: String, Equatable, Sendable, CaseIterable
     /// The XISF 1.0 specification uses little-endian by default, matching the
     /// vast majority of systems on which XISF is deployed.
     public static let defaultValue: XISFByteOrder = .little
+
+    /// The spec token for this byte order (its raw value).
+    public var description: String
+    {
+        self.rawValue
+    }
 }

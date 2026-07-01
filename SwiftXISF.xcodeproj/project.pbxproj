@@ -8,6 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		052104742FF3AE500089C911 /* SwiftXISF.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0521046A2FF3AE500089C911 /* SwiftXISF.framework */; };
+		AB00000000000000000000A1 /* TestError.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000000000000000000A0 /* TestError.swift */; };
+		AB00000000000000000000A3 /* TestUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000000000000000000A2 /* TestUtilities.swift */; };
+		AB00000000000000000000A5 /* Descriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000000000000000000A4 /* Descriptions.swift */; };
+		AB00000000000000000000B1 /* masterLight_BIN-1_1080x1920_EXPOSURE-10.00s_FILTER-LP_RGB_drizzle_1x_autocrop.xisf in Resources */ = {isa = PBXBuildFile; fileRef = AB00000000000000000000B0 /* masterLight_BIN-1_1080x1920_EXPOSURE-10.00s_FILTER-LP_RGB_drizzle_1x_autocrop.xisf */; };
+		AB00000000000000000000B3 /* masterLight_BIN-1_1080x1920_EXPOSURE-10.00s_FILTER-LP_RGB_drizzle_1x_autocrop_corrected.xisf in Resources */ = {isa = PBXBuildFile; fileRef = AB00000000000000000000B2 /* masterLight_BIN-1_1080x1920_EXPOSURE-10.00s_FILTER-LP_RGB_drizzle_1x_autocrop_corrected.xisf */; };
 		AB0000000000000000000003 /* XISFError.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000002 /* XISFError.swift */; };
 		AB0000000000000000000005 /* XISFParsingOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000004 /* XISFParsingOptions.swift */; };
 		AB0000000000000000000008 /* XISFError.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000007 /* XISFError.swift */; };
@@ -142,6 +147,11 @@
 		AB0000000000000000000013 /* Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Data.swift; sourceTree = "<group>"; };
 		AB0000000000000000000015 /* String.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = String.swift; sourceTree = "<group>"; };
 		AB0000000000000000000017 /* CharacterSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterSet.swift; sourceTree = "<group>"; };
+		AB00000000000000000000A0 /* TestError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestError.swift; sourceTree = "<group>"; };
+		AB00000000000000000000A2 /* TestUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestUtilities.swift; sourceTree = "<group>"; };
+		AB00000000000000000000A4 /* Descriptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Descriptions.swift; sourceTree = "<group>"; };
+		AB00000000000000000000B0 /* masterLight_BIN-1_1080x1920_EXPOSURE-10.00s_FILTER-LP_RGB_drizzle_1x_autocrop.xisf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "masterLight_BIN-1_1080x1920_EXPOSURE-10.00s_FILTER-LP_RGB_drizzle_1x_autocrop.xisf"; sourceTree = "<group>"; };
+		AB00000000000000000000B2 /* masterLight_BIN-1_1080x1920_EXPOSURE-10.00s_FILTER-LP_RGB_drizzle_1x_autocrop_corrected.xisf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "masterLight_BIN-1_1080x1920_EXPOSURE-10.00s_FILTER-LP_RGB_drizzle_1x_autocrop_corrected.xisf"; sourceTree = "<group>"; };
 		AB0000000000000000000019 /* XISFFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFFile.swift; sourceTree = "<group>"; };
 		AB000000000000000000001B /* XISFFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFFile.swift; sourceTree = "<group>"; };
 		AB000000000000000000001D /* XISFElement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFElement.swift; sourceTree = "<group>"; };
@@ -222,8 +232,18 @@
 				052104C02FF3AEAE0089C911 /* xcconfig */,
 				052104C22FF3AEB20089C911 /* SwiftXISF */,
 				052104C52FF3AEB50089C911 /* SwiftXISFTests */,
+				AB00000000000000000000C0 /* Test Files */,
 				0521046B2FF3AE500089C911 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		AB00000000000000000000C0 /* Test Files */ = {
+			isa = PBXGroup;
+			children = (
+				AB00000000000000000000B0 /* masterLight_BIN-1_1080x1920_EXPOSURE-10.00s_FILTER-LP_RGB_drizzle_1x_autocrop.xisf */,
+				AB00000000000000000000B2 /* masterLight_BIN-1_1080x1920_EXPOSURE-10.00s_FILTER-LP_RGB_drizzle_1x_autocrop_corrected.xisf */,
+			);
+			path = "Test Files";
 			sourceTree = "<group>";
 		};
 		0521046B2FF3AE500089C911 /* Products */ = {
@@ -387,6 +407,9 @@
 				AB0000000000000000000058 /* Image */,
 				AB0000000000000000000082 /* Color */,
 				AB0000000000000000000012 /* Extensions */,
+				AB00000000000000000000A0 /* TestError.swift */,
+				AB00000000000000000000A2 /* TestUtilities.swift */,
+				AB00000000000000000000A4 /* Descriptions.swift */,
 			);
 			path = SwiftXISFTests;
 			sourceTree = "<group>";
@@ -669,6 +692,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AB00000000000000000000B1 /* masterLight_BIN-1_1080x1920_EXPOSURE-10.00s_FILTER-LP_RGB_drizzle_1x_autocrop.xisf in Resources */,
+				AB00000000000000000000B3 /* masterLight_BIN-1_1080x1920_EXPOSURE-10.00s_FILTER-LP_RGB_drizzle_1x_autocrop_corrected.xisf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -745,6 +770,9 @@
 				AB0000000000000000000014 /* Data.swift in Sources */,
 				AB0000000000000000000016 /* String.swift in Sources */,
 				AB0000000000000000000018 /* CharacterSet.swift in Sources */,
+				AB00000000000000000000A1 /* TestError.swift in Sources */,
+				AB00000000000000000000A3 /* TestUtilities.swift in Sources */,
+				AB00000000000000000000A5 /* Descriptions.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

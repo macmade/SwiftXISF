@@ -30,7 +30,7 @@ import Foundation
 /// This models the three in-file forms (`inline`, `embedded`, `attachment`) and
 /// the external/distributed forms (`url(...)` and `path(...)`, optionally with a
 /// `:index-id` into an XISF data blocks file).
-public enum XISFDataBlockLocation: Equatable, Sendable
+public enum XISFDataBlockLocation: Equatable, Sendable, CustomStringConvertible
 {
     /// The text encoding of inline or embedded data-block bytes.
     public enum Encoding: String, Sendable
@@ -76,6 +76,23 @@ public enum XISFDataBlockLocation: Equatable, Sendable
         {
             case .inline, .embedded, .attachment:              return false
             case .url, .absolutePath, .headerRelativePath:     return true
+        }
+    }
+
+    /// The `location` attribute form this location describes (for example
+    /// `inline:base64`, `attachment:4570:1428362` or `path(@header_dir/rel)`).
+    public var description: String
+    {
+        let suffix = { ( indexID: UInt64? ) in indexID.map { ":\( $0 )" } ?? "" }
+
+        switch self
+        {
+            case .inline( let encoding ):               return "inline:\( encoding.rawValue )"
+            case .embedded:                             return "embedded"
+            case .attachment( let position, let size ): return "attachment:\( position ):\( size )"
+            case .url( let url, let indexID ):          return "url(\( url.absoluteString ))\( suffix( indexID ) )"
+            case .absolutePath( let path, let indexID ):      return "path(\( path ))\( suffix( indexID ) )"
+            case .headerRelativePath( let path, let indexID ): return "path(@header_dir/\( path ))\( suffix( indexID ) )"
         }
     }
 

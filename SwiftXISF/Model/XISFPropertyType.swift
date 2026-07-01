@@ -32,7 +32,7 @@ import Foundation
 /// `Complex32`/`Complex64`, `String`, `TimePoint`, the homogeneous vector and
 /// matrix families, and `ByteArray`. There are deliberately no 128-bit complex
 /// or 128-bit scalar types: XISF 1.0 stops at `Complex64` / `C64*`.
-public enum XISFPropertyType: String, CaseIterable, Sendable
+public enum XISFPropertyType: String, CaseIterable, Sendable, CustomStringConvertible
 {
     /// The broad category a property type belongs to, which determines how its
     /// value is represented and parsed.
@@ -207,5 +207,11 @@ public enum XISFPropertyType: String, CaseIterable, Sendable
                  .i64Matrix, .ui64Matrix, .f32Matrix, .f64Matrix, .c32Matrix, .c64Matrix:
                 return .matrix
         }
+    }
+
+    /// The spec token for this property type (its raw value).
+    public var description: String
+    {
+        self.rawValue
     }
 }

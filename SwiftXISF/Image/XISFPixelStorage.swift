@@ -29,7 +29,7 @@ import Foundation
 /// `Planar` stores each channel contiguously (channel-major); `Normal` stores
 /// samples interleaved per pixel (pixel-major). SwiftXISF exposes the pixel
 /// bytes opaquely, so this is metadata the consumer uses to interpret them.
-public enum XISFPixelStorage: String, Equatable, Sendable, CaseIterable
+public enum XISFPixelStorage: String, Equatable, Sendable, CaseIterable, CustomStringConvertible
 {
     /// Channel-contiguous (planar) storage.
     case planar = "Planar"
@@ -39,4 +39,10 @@ public enum XISFPixelStorage: String, Equatable, Sendable, CaseIterable
 
     /// The default pixel storage when the attribute is absent (`Planar`).
     public static let defaultValue: XISFPixelStorage = .planar
+
+    /// The spec token for this pixel-storage model (its raw value).
+    public var description: String
+    {
+        self.rawValue
+    }
 }

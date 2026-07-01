@@ -29,18 +29,12 @@ import Testing
 struct Test_XISFFile
 {
     /// Builds a monolithic-file byte stream for testing.
-    private static func monolithicFile( signature: String = "XISF0100", headerLength: UInt32? = nil, reserved: UInt32 = 0, xml: String = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><xisf version=\"1.0\" xmlns=\"http://www.pixinsight.com/xisf\"/>", attachment: Data = Data() ) -> Data
+    ///
+    /// Delegates to the shared ``TestUtilities/monolithicFile(signature:headerLength:reserved:xml:attachment:)``
+    /// builder so every test constructs synthetic files the same way.
+    private static func monolithicFile( signature: String = XISFFile.signature, headerLength: UInt32? = nil, reserved: UInt32 = 0, xml: String = TestUtilities.defaultHeaderXML, attachment: Data = Data() ) -> Data
     {
-        let xmlData = Data( xml.utf8 )
-        var data    = Data()
-
-        data.append( contentsOf: Array( signature.utf8 ) )
-        withUnsafeBytes( of: ( headerLength ?? UInt32( xmlData.count ) ).littleEndian ) { data.append( contentsOf: $0 ) }
-        withUnsafeBytes( of: reserved.littleEndian )                                   { data.append( contentsOf: $0 ) }
-        data.append( xmlData )
-        data.append( attachment )
-
-        return data
+        TestUtilities.monolithicFile( signature: signature, headerLength: headerLength, reserved: reserved, xml: xml, attachment: attachment )
     }
 
     @Test
@@ -300,5 +294,160 @@ struct Test_XISFFile
         let xml = "<xisf version=\"1.0\"><unclosed></xisf>"
 
         try #require( throws: XISFError.self ) { try XISFFile( data: Test_XISFFile.monolithicFile( xml: xml ), options: .strict ) }
+    }
+
+    // MARK: - Real-fixture integration tests
+
+    /// The plain autocrop fixture: an RGB integration image plus a Gray crop mask.
+    private static var autocropFixture: URL?
+    {
+        TestUtilities.testFiles.first { $0.lastPathComponent.contains( "autocrop.xisf" ) }
+    }
+
+    /// The corrected fixture: a single RGB image carrying a thumbnail, ICC
+    /// profile, resolution and display function.
+    private static var correctedFixture: URL?
+    {
+        TestUtilities.testFiles.first { $0.lastPathComponent.contains( "corrected.xisf" ) }
+    }
+
+    @Test
+    func parsesAllTestFiles() async throws
+    {
+        try #require( TestUtilities.testFiles.isEmpty == false )
+
+        try TestUtilities.testFiles.forEach
+        {
+            let _ = try XISFFile( url: $0, options: .lenient )
+        }
+    }
+
+    @Test
+    func parsesAllTestFilesStrictly() async throws
+    {
+        try #require( TestUtilities.testFiles.isEmpty == false )
+
+        try TestUtilities.testFiles.forEach
+        {
+            let _ = try XISFFile( url: $0, options: .strict )
+        }
+    }
+
+    @Test
+    func everyImageDeclaresConsistentGeometry() async throws
+    {
+        try TestUtilities.testFiles.forEach
+        {
+            let file = try XISFFile( url: $0, options: .lenient )
+
+            file.images.forEach
+            {
+                #expect( $0.geometry.dimensions.isEmpty == false )
+                #expect( $0.geometry.channelCount >= 1 )
+                #expect( $0.geometry.sampleCount == $0.geometry.pixelCount * $0.geometry.channelCount )
+                #expect( $0.sampleFormat.bytesPerSample >= 1 )
+            }
+        }
+    }
+
+    @Test
+    func parsesAutocropFixture() async throws
+    {
+        let url  = try #require( Test_XISFFile.autocropFixture )
+        let file = try XISFFile( url: url, options: .lenient )
+
+        try #require( file.images.count == 2 )
+
+        let integration = file.images[ 0 ]
+        let mask        = file.images[ 1 ]
+
+        #expect( integration.id                   == "integration_autocrop" )
+        #expect( integration.geometry.dimensions  == [ 578, 1547 ] )
+        #expect( integration.geometry.channelCount == 3 )
+        #expect( integration.sampleFormat         == .float32 )
+        #expect( integration.colorSpace           == .rgb )
+        #expect( integration.byteOrder            == .little )
+        #expect( integration.bounds               == 0.0 ... 1.0 )
+        #expect( integration.keywords.count       == 28 )
+        #expect( integration.properties.count     == 89 )
+
+        #expect( mask.id                    == "crop_mask" )
+        #expect( mask.geometry.dimensions   == [ 1080, 1920 ] )
+        #expect( mask.geometry.channelCount == 1 )
+        #expect( mask.sampleFormat          == .float32 )
+        #expect( mask.colorSpace            == .gray )
+
+        // A scalar property and a FITS keyword parsed from the real header.
+        #expect( integration.properties.first { $0.id == "Instrument:Filter:Name" }?.value.string      == "LP" )
+        #expect( integration.properties.first { $0.id == "Instrument:Sensor:XPixelSize" }?.value.float  == 2.9 )
+        #expect( integration.keywords.first { $0.name == "FILTER" }?.value                              == "'LP'" )
+
+        // The unit-level metadata element is present.
+        #expect( file.metadata != nil )
+        #expect( file.metadata?[ "XISF:CreatorApplication" ]?.value.string != nil )
+    }
+
+    @Test
+    func parsesAutocropFixturePixelData() async throws
+    {
+        let url         = try #require( Test_XISFFile.autocropFixture )
+        let file        = try XISFFile( url: url, options: .lenient )
+        let integration = try #require( file.images.first )
+
+        // The decoded opaque pixel bytes match geometry x bytes-per-sample.
+        let expected = integration.geometry.sampleCount * integration.sampleFormat.bytesPerSample
+
+        #expect( try integration.data.count == expected )
+        #expect( expected == 578 * 1547 * 3 * 4 )
+    }
+
+    @Test
+    func parsesCorrectedFixture() async throws
+    {
+        let url   = try #require( Test_XISFFile.correctedFixture )
+        let file  = try XISFFile( url: url, options: .lenient )
+        let image = try #require( file.images.first )
+
+        try #require( file.images.count == 1 )
+
+        #expect( image.id                    == "drizzle_integration" )
+        #expect( image.geometry.dimensions   == [ 1080, 1920 ] )
+        #expect( image.geometry.channelCount == 3 )
+        #expect( image.sampleFormat          == .float32 )
+        #expect( image.colorSpace            == .rgb )
+        #expect( image.bounds                == 0.0 ... 1.0 )
+        #expect( image.keywords.count        == 27 )
+
+        // The corrected image carries the full complement of ancillary elements.
+        #expect( image.thumbnail       != nil )
+        #expect( image.iccProfile      != nil )
+        #expect( image.resolution      != nil )
+        #expect( image.displayFunction != nil )
+
+        #expect( image.resolution?.horizontal == 72 )
+        #expect( image.resolution?.vertical   == 72 )
+        #expect( image.resolution?.unit       == .inch )
+
+        // The thumbnail is a small 8-bit RGB image.
+        let thumbnail = try #require( image.thumbnail )
+
+        #expect( thumbnail.image.geometry.dimensions   == [ 225, 400 ] )
+        #expect( thumbnail.image.geometry.channelCount == 3 )
+        #expect( thumbnail.image.sampleFormat          == .uInt8 )
+        #expect( thumbnail.image.colorSpace            == .rgb )
+
+        #expect( file.metadata != nil )
+    }
+
+    @Test
+    func decodesCorrectedFixtureAncillaryData() async throws
+    {
+        let url   = try #require( Test_XISFFile.correctedFixture )
+        let file  = try XISFFile( url: url, options: .lenient )
+        let image = try #require( file.images.first )
+
+        // The inline ICC profile and the attached thumbnail decode to bytes.
+        #expect( try image.iccProfile?.data.isEmpty == false )
+        #expect( try image.thumbnail?.data.count == 225 * 400 * 3 )
     }
 }
