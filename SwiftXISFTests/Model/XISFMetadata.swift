@@ -30,7 +30,7 @@ struct Test_XISFMetadata
 {
     private static func metadata( _ xml: String, options: XISFParsingOptions = .strict ) throws -> XISFMetadata
     {
-        try XISFMetadata( element: XISFXMLParser.parse( xml ), fileData: Data(), options: options )
+        try XISFMetadata( element: XISFXMLParser.parse( xml ), fileData: Data(), baseURL: nil, options: options )
     }
 
     @Test

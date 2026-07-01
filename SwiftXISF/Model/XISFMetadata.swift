@@ -53,12 +53,15 @@ public struct XISFMetadata: Equatable, Sendable, CustomStringConvertible
     ///   - element: The `<Metadata>` element.
     ///   - fileData: The complete file bytes, used to resolve any data-block
     ///     backed property values.
+    ///   - baseURL: The directory of the XISF header file, used to resolve
+    ///     `@header_dir` relative external data blocks; `nil` when the unit was
+    ///     opened from raw data.
     ///   - options: The parsing options to apply.
     /// - Throws: any ``XISFError`` raised while parsing a child property under
     ///   strict parsing.
-    internal init( element: XISFElement, fileData: Data, options: XISFParsingOptions ) throws
+    internal init( element: XISFElement, fileData: Data, baseURL: URL?, options: XISFParsingOptions ) throws
     {
-        self.properties = try XISFProperty.parseList( from: element, fileData: fileData, options: options )
+        self.properties = try XISFProperty.parseList( from: element, fileData: fileData, baseURL: baseURL, options: options )
     }
 
     /// A single-line, human-readable summary of the metadata.

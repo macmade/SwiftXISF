@@ -28,9 +28,9 @@ import Testing
 
 struct Test_XISFThumbnail
 {
-    private static func thumbnail( _ xml: String, fileData: Data = Data(), options: XISFParsingOptions = .strict ) throws -> XISFThumbnail
+    private static func thumbnail( _ xml: String, fileData: Data = Data(), baseURL: URL? = nil, options: XISFParsingOptions = .strict ) throws -> XISFThumbnail
     {
-        try XISFThumbnail( element: XISFXMLParser.parse( xml ), fileData: fileData, options: options )
+        try XISFThumbnail( element: XISFXMLParser.parse( xml ), fileData: fileData, baseURL: baseURL, options: options )
     }
 
     @Test

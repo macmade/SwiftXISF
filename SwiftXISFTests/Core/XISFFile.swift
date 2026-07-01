@@ -142,6 +142,40 @@ struct Test_XISFFile
     }
 
     @Test
+    func resolvesHeaderRelativeExternalImageFromURL() async throws
+    {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent( "Test_XISFFile_\( UUID().uuidString )", isDirectory: true )
+
+        try FileManager.default.createDirectory( at: directory, withIntermediateDirectories: true )
+
+        defer { try? FileManager.default.removeItem( at: directory ) }
+
+        // A 2x2:1 UInt8 image whose pixels live in an adjacent external file,
+        // located relative to the header file's directory.
+        let xml    = "<xisf version=\"1.0\" xmlns=\"http://www.pixinsight.com/xisf\"><Image geometry=\"2:2:1\" sampleFormat=\"UInt8\" location=\"path(@header_dir/pixels.bin)\"/></xisf>"
+        let header = directory.appendingPathComponent( "image.xisf" )
+        let pixels = directory.appendingPathComponent( "pixels.bin" )
+
+        try Test_XISFFile.monolithicFile( xml: xml ).write( to: header )
+        try Data( [ 0x01, 0x02, 0x03, 0x04 ] ).write( to: pixels )
+
+        let file = try XISFFile( url: header, options: [ .allowExternalLocations ] )
+
+        #expect( try file.images.first?.data == Data( [ 0x01, 0x02, 0x03, 0x04 ] ) )
+    }
+
+    @Test
+    func rejectsExternalImageWhenResolutionDisabled() async throws
+    {
+        let xml  = "<xisf version=\"1.0\" xmlns=\"http://www.pixinsight.com/xisf\"><Image geometry=\"2:2:1\" sampleFormat=\"UInt8\" location=\"path(/nonexistent/pixels.bin)\"/></xisf>"
+        let file = try XISFFile( data: Test_XISFFile.monolithicFile( xml: xml ), options: .strict )
+
+        // Opening succeeds (external resolution is lazy); reading the pixels
+        // fails because external resolution is disabled by default.
+        try #require( throws: XISFError.self ) { _ = try file.images.first?.data }
+    }
+
+    @Test
     func exposesTopLevelElementNames() async throws
     {
         let xml  = "<xisf version=\"1.0\" xmlns=\"http://www.pixinsight.com/xisf\"><Image geometry=\"1:1:1\" sampleFormat=\"UInt8\" location=\"inline:hex\">01</Image><Property id=\"a\" type=\"Int32\" value=\"1\"/><FITSKeyword name=\"A\" value=\"1\"/></xisf>"

@@ -115,6 +115,9 @@ public final class XISFImage: CustomStringConvertible
     ///   - element: The `<Image>` element.
     ///   - fileData: The complete file bytes, used to resolve an `attachment`
     ///     pixel data block by its absolute offset.
+    ///   - baseURL: The directory of the XISF header file, used to resolve
+    ///     `@header_dir` relative external data blocks; `nil` when the unit was
+    ///     opened from raw data.
     ///   - options: The parsing options to apply. Under strict parsing the
     ///     expected pixel byte count must match the geometry and sample format,
     ///     floating-point images must declare `bounds`, and unknown enumerated
@@ -123,7 +126,7 @@ public final class XISFImage: CustomStringConvertible
     /// - Throws: ``XISFError/invalidElement(reason:)`` if a required attribute is
     ///   missing or invalid, or a validation check fails; or any error raised
     ///   while resolving the pixel data block.
-    internal init( element: XISFElement, fileData: Data, options: XISFParsingOptions ) throws
+    internal init( element: XISFElement, fileData: Data, baseURL: URL?, options: XISFParsingOptions ) throws
     {
         guard let geometryString = element.attributes[ "geometry" ]
         else
@@ -141,7 +144,7 @@ public final class XISFImage: CustomStringConvertible
 
         let lenient   = options.contains( .allowSpecDeviations )
         let bounds    = try element.attributes[ "bounds" ].map { try XISFImage.parseBounds( $0 ) }
-        let dataBlock = try XISFDataBlock( element: element, fileData: fileData, options: options )
+        let dataBlock = try XISFDataBlock( element: element, fileData: fileData, baseURL: baseURL, options: options )
 
         if sampleFormat.isFloatingPoint, bounds == nil, lenient == false
         {
@@ -150,9 +153,12 @@ public final class XISFImage: CustomStringConvertible
 
         let expectedSize = geometry.sampleCount * sampleFormat.bytesPerSample
 
-        if dataBlock.uncompressedSize != expectedSize, lenient == false
+        // The uncompressed size is unknown for an uncompressed external block
+        // (it would require reading the external resource), so validate only when
+        // it is known without resolving the block.
+        if let actualSize = dataBlock.uncompressedSize, actualSize != expectedSize, lenient == false
         {
-            throw XISFError.invalidElement( reason: "Image pixel data is \( dataBlock.uncompressedSize ) bytes but geometry \( geometryString ) and format \( sampleFormat.rawValue ) require \( expectedSize )" )
+            throw XISFError.invalidElement( reason: "Image pixel data is \( actualSize ) bytes but geometry \( geometryString ) and format \( sampleFormat.rawValue ) require \( expectedSize )" )
         }
 
         self.geometry     = geometry
@@ -166,15 +172,15 @@ public final class XISFImage: CustomStringConvertible
         self.id           = element.attributes[ "id" ]
         self.uuid         = element.attributes[ "uuid" ]
         self.dataBlock    = dataBlock
-        self.properties   = try XISFProperty.parseList( from: element, fileData: fileData, options: options )
+        self.properties   = try XISFProperty.parseList( from: element, fileData: fileData, baseURL: baseURL, options: options )
         self.keywords     = try element.children( named: "FITSKeyword" ).map { try XISFFITSKeyword( element: $0, options: options ) }
 
-        self.iccProfile       = try XISFImage.optionalChild( element, named: "ICCProfile",       options: options ) { try XISFICCProfile( element: $0, fileData: fileData, options: options ) }
+        self.iccProfile       = try XISFImage.optionalChild( element, named: "ICCProfile",       options: options ) { try XISFICCProfile( element: $0, fileData: fileData, baseURL: baseURL, options: options ) }
         self.rgbWorkingSpace  = try XISFImage.optionalChild( element, named: "RGBWorkingSpace",  options: options ) { try XISFRGBWorkingSpace( element: $0, options: options ) }
         self.displayFunction  = try XISFImage.optionalChild( element, named: "DisplayFunction",  options: options ) { try XISFDisplayFunction( element: $0, options: options ) }
         self.colorFilterArray = try XISFImage.optionalChild( element, named: "ColorFilterArray", options: options ) { try XISFColorFilterArray( element: $0, options: options ) }
         self.resolution       = try XISFImage.optionalChild( element, named: "Resolution",       options: options ) { try XISFResolution( element: $0, options: options ) }
-        self.thumbnail        = try XISFImage.optionalChild( element, named: "Thumbnail",        options: options ) { try XISFThumbnail( element: $0, fileData: fileData, options: options ) }
+        self.thumbnail        = try XISFImage.optionalChild( element, named: "Thumbnail",        options: options ) { try XISFThumbnail( element: $0, fileData: fileData, baseURL: baseURL, options: options ) }
     }
 
     /// Parses an optional child metadata element, tolerating a malformed one

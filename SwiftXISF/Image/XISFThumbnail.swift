@@ -58,15 +58,18 @@ public final class XISFThumbnail: CustomStringConvertible
     ///   - element: The `<Thumbnail>` element.
     ///   - fileData: The complete file bytes, used to resolve an `attachment`
     ///     pixel data block by its absolute offset.
+    ///   - baseURL: The directory of the XISF header file, used to resolve
+    ///     `@header_dir` relative external data blocks; `nil` when the unit was
+    ///     opened from raw data.
     ///   - options: The parsing options to apply. Under strict parsing the
     ///     thumbnail restrictions are enforced;
     ///     ``XISFParsingOptions/allowSpecDeviations`` relaxes them.
     /// - Throws: ``XISFError/invalidElement(reason:)`` if a thumbnail restriction
     ///   is violated under strict parsing, or any error raised while parsing the
     ///   image.
-    internal init( element: XISFElement, fileData: Data, options: XISFParsingOptions ) throws
+    internal init( element: XISFElement, fileData: Data, baseURL: URL?, options: XISFParsingOptions ) throws
     {
-        let image = try XISFImage( element: element, fileData: fileData, options: options )
+        let image = try XISFImage( element: element, fileData: fileData, baseURL: baseURL, options: options )
 
         if options.contains( .allowSpecDeviations ) == false
         {

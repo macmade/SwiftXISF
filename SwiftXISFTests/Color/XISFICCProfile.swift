@@ -28,9 +28,9 @@ import Testing
 
 struct Test_XISFICCProfile
 {
-    private static func iccProfile( _ xml: String, fileData: Data = Data(), options: XISFParsingOptions = .strict ) throws -> XISFICCProfile
+    private static func iccProfile( _ xml: String, fileData: Data = Data(), baseURL: URL? = nil, options: XISFParsingOptions = .strict ) throws -> XISFICCProfile
     {
-        try XISFICCProfile( element: XISFXMLParser.parse( xml ), fileData: fileData, options: options )
+        try XISFICCProfile( element: XISFXMLParser.parse( xml ), fileData: fileData, baseURL: baseURL, options: options )
     }
 
     @Test

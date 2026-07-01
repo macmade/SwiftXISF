@@ -57,12 +57,15 @@ public final class XISFICCProfile: CustomStringConvertible
     ///     `location`.
     ///   - fileData: The complete file bytes, used to resolve an `attachment`
     ///     data block by its absolute offset.
+    ///   - baseURL: The directory of the XISF header file, used to resolve
+    ///     `@header_dir` relative external data blocks; `nil` when the unit was
+    ///     opened from raw data.
     ///   - options: The parsing options to apply.
     /// - Throws: ``XISFError/dataBlockError(reason:)`` if the `location` is
     ///   missing or malformed, or any error raised while resolving the block.
-    internal init( element: XISFElement, fileData: Data, options: XISFParsingOptions ) throws
+    internal init( element: XISFElement, fileData: Data, baseURL: URL?, options: XISFParsingOptions ) throws
     {
-        self.dataBlock = try XISFDataBlock( element: element, fileData: fileData, options: options )
+        self.dataBlock = try XISFDataBlock( element: element, fileData: fileData, baseURL: baseURL, options: options )
     }
 
     /// A single-line, human-readable summary of the ICC profile.

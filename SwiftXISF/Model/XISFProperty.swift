@@ -72,6 +72,9 @@ public struct XISFProperty: Equatable, Sendable, CustomStringConvertible
     ///   - element: The `<Property>` element.
     ///   - fileData: The complete file bytes, used to resolve an `attachment`
     ///     data block for a vector/matrix/`ByteArray`/data-block string value.
+    ///   - baseURL: The directory of the XISF header file, used to resolve
+    ///     `@header_dir` relative external data blocks; `nil` when the unit was
+    ///     opened from raw data.
     ///   - options: The parsing options to apply. Under strict parsing the `id`
     ///     must be a valid colon-separated identifier and the dimension
     ///     attributes must be present; ``XISFParsingOptions/allowSpecDeviations``
@@ -79,7 +82,7 @@ public struct XISFProperty: Equatable, Sendable, CustomStringConvertible
     /// - Throws: ``XISFError/invalidElement(reason:)`` if a required attribute is
     ///   missing, the type is unknown, the `id` is invalid, or the value cannot
     ///   be parsed; or any error raised while resolving a data block.
-    internal init( element: XISFElement, fileData: Data, options: XISFParsingOptions ) throws
+    internal init( element: XISFElement, fileData: Data, baseURL: URL?, options: XISFParsingOptions ) throws
     {
         guard let id = element.attributes[ "id" ], id.isEmpty == false
         else
@@ -133,7 +136,7 @@ public struct XISFProperty: Equatable, Sendable, CustomStringConvertible
                 if element.attributes[ "location" ] != nil
                 {
                     // A String value stored in a data block is decoded as UTF-8.
-                    let bytes = try XISFDataBlock( element: element, fileData: fileData, options: options ).data
+                    let bytes = try XISFDataBlock( element: element, fileData: fileData, baseURL: baseURL, options: options ).data
 
                     guard let string = String( data: bytes, encoding: .utf8 )
                     else
@@ -152,13 +155,13 @@ public struct XISFProperty: Equatable, Sendable, CustomStringConvertible
                 self.length  = try XISFProperty.dimension( element, "length", id: id, required: lenient == false )
                 self.rows    = nil
                 self.columns = nil
-                self.value   = .data( try XISFDataBlock( element: element, fileData: fileData, options: options ).data )
+                self.value   = .data( try XISFDataBlock( element: element, fileData: fileData, baseURL: baseURL, options: options ).data )
 
             case .matrix:
                 self.length  = nil
                 self.rows    = try XISFProperty.dimension( element, "rows", id: id, required: lenient == false )
                 self.columns = try XISFProperty.dimension( element, "columns", id: id, required: lenient == false )
-                self.value   = .data( try XISFDataBlock( element: element, fileData: fileData, options: options ).data )
+                self.value   = .data( try XISFDataBlock( element: element, fileData: fileData, baseURL: baseURL, options: options ).data )
         }
     }
 
@@ -206,11 +209,14 @@ public struct XISFProperty: Equatable, Sendable, CustomStringConvertible
     ///   - element: The element whose `<Property>` children to parse.
     ///   - fileData: The complete file bytes, used to resolve data-block-backed
     ///     property values.
+    ///   - baseURL: The directory of the XISF header file, used to resolve
+    ///     `@header_dir` relative external data blocks; `nil` when the unit was
+    ///     opened from raw data.
     ///   - options: The parsing options to apply.
     /// - Returns: The parsed properties, in document order.
     /// - Throws: Any ``XISFError`` raised while parsing a property, under strict
     ///   parsing.
-    internal static func parseList( from element: XISFElement, fileData: Data, options: XISFParsingOptions ) throws -> [ XISFProperty ]
+    internal static func parseList( from element: XISFElement, fileData: Data, baseURL: URL?, options: XISFParsingOptions ) throws -> [ XISFProperty ]
     {
         try element.children( named: "Property" ).compactMap
         {
@@ -229,7 +235,7 @@ public struct XISFProperty: Equatable, Sendable, CustomStringConvertible
 
             do
             {
-                return try XISFProperty( element: child, fileData: fileData, options: options )
+                return try XISFProperty( element: child, fileData: fileData, baseURL: baseURL, options: options )
             }
             catch
             {

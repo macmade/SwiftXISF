@@ -28,9 +28,9 @@ import Testing
 
 struct Test_XISFImage
 {
-    private static func image( _ xml: String, fileData: Data = Data(), options: XISFParsingOptions = .strict ) throws -> XISFImage
+    private static func image( _ xml: String, fileData: Data = Data(), baseURL: URL? = nil, options: XISFParsingOptions = .strict ) throws -> XISFImage
     {
-        try XISFImage( element: XISFXMLParser.parse( xml ), fileData: fileData, options: options )
+        try XISFImage( element: XISFXMLParser.parse( xml ), fileData: fileData, baseURL: baseURL, options: options )
     }
 
     @Test

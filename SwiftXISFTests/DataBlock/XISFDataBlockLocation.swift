@@ -59,10 +59,62 @@ struct Test_XISFDataBlockLocation
     }
 
     @Test
-    func rejectsExternalLocationsForNow() async throws
+    func parsesURLLocations() async throws
     {
-        // External / distributed locations are deferred to a later milestone.
-        try #require( throws: XISFError.self ) { try XISFDataBlockLocation( attribute: "url(file:///tmp/x.dat)" ) }
-        try #require( throws: XISFError.self ) { try XISFDataBlockLocation( attribute: "path(/tmp/x.dat)" ) }
+        #expect( try XISFDataBlockLocation( attribute: "url(http://example.com/f.bin)" ) == .url( URL( string: "http://example.com/f.bin" ).require(), indexID: nil ) )
+        #expect( try XISFDataBlockLocation( attribute: "url(file:///data/huge.xisb):0x7a73526b" ) == .url( URL( string: "file:///data/huge.xisb" ).require(), indexID: 0x7a73526b ) )
+    }
+
+    @Test
+    func parsesAbsolutePathLocations() async throws
+    {
+        #expect( try XISFDataBlockLocation( attribute: "path(/data/x.dat)" )     == .absolutePath( "/data/x.dat", indexID: nil ) )
+        #expect( try XISFDataBlockLocation( attribute: "path(/data/x.xisb):42" ) == .absolutePath( "/data/x.xisb", indexID: 42 ) )
+    }
+
+    @Test
+    func parsesHeaderRelativePathLocations() async throws
+    {
+        #expect( try XISFDataBlockLocation( attribute: "path(@header_dir/blocks.xisb):0x4d37" ) == .headerRelativePath( "blocks.xisb", indexID: 0x4d37 ) )
+        #expect( try XISFDataBlockLocation( attribute: "path(@header_dir/sub/f.dat)" )           == .headerRelativePath( "sub/f.dat", indexID: nil ) )
+    }
+
+    @Test
+    func parsesParenthesesWithinResource() async throws
+    {
+        // Parentheses inside the path are literal after XML decoding; the closing
+        // parenthesis is the last one.
+        #expect( try XISFDataBlockLocation( attribute: "path(/Documents/description(draft).txt)" ) == .absolutePath( "/Documents/description(draft).txt", indexID: nil ) )
+    }
+
+    @Test
+    func reportsExternalLocationsAsExternal() async throws
+    {
+        #expect( try XISFDataBlockLocation( attribute: "path(/x.dat)" ).isExternal        == true )
+        #expect( try XISFDataBlockLocation( attribute: "inline:hex" ).isExternal          == false )
+        #expect( try XISFDataBlockLocation( attribute: "attachment:0:4" ).isExternal      == false )
+    }
+
+    @Test
+    func rejectsMalformedExternalLocations() async throws
+    {
+        try #require( throws: XISFError.self ) { try XISFDataBlockLocation( attribute: "url(no-close" ) }
+        try #require( throws: XISFError.self ) { try XISFDataBlockLocation( attribute: "path(/x.dat):zz" ) }
+        try #require( throws: XISFError.self ) { try XISFDataBlockLocation( attribute: "path(/x.dat)trailing" ) }
+    }
+}
+
+private extension Optional
+{
+    /// Unwraps the value, failing the test with a fatal error when `nil`.
+    func require() -> Wrapped
+    {
+        guard let value = self
+        else
+        {
+            fatalError( "Unexpected nil value in test" )
+        }
+
+        return value
     }
 }

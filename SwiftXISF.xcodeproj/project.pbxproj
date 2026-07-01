@@ -65,6 +65,8 @@
 		AB000000000000000000007C /* XISFResolution.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000007B /* XISFResolution.swift */; };
 		AB000000000000000000007E /* XISFMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000007D /* XISFMetadata.swift */; };
 		AB0000000000000000000080 /* XISFThumbnail.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000007F /* XISFThumbnail.swift */; };
+		AB0000000000000000000084 /* XISFDataBlocksFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000083 /* XISFDataBlocksFile.swift */; };
+		AB0000000000000000000086 /* XISFExternalDataBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000085 /* XISFExternalDataBlock.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -186,6 +188,8 @@
 		AB000000000000000000007B /* XISFResolution.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFResolution.swift; sourceTree = "<group>"; };
 		AB000000000000000000007D /* XISFMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFMetadata.swift; sourceTree = "<group>"; };
 		AB000000000000000000007F /* XISFThumbnail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFThumbnail.swift; sourceTree = "<group>"; };
+		AB0000000000000000000083 /* XISFDataBlocksFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFDataBlocksFile.swift; sourceTree = "<group>"; };
+		AB0000000000000000000085 /* XISFExternalDataBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFExternalDataBlock.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -414,6 +418,7 @@
 			children = (
 				AB0000000000000000000036 /* XISFDataBlockLocation.swift */,
 				AB0000000000000000000038 /* XISFDataBlock.swift */,
+				AB0000000000000000000083 /* XISFDataBlocksFile.swift */,
 			);
 			path = DataBlock;
 			sourceTree = "<group>";
@@ -423,6 +428,7 @@
 			children = (
 				AB000000000000000000003B /* XISFDataBlockLocation.swift */,
 				AB000000000000000000003D /* XISFDataBlock.swift */,
+				AB0000000000000000000085 /* XISFExternalDataBlock.swift */,
 			);
 			path = DataBlock;
 			sourceTree = "<group>";
@@ -676,6 +682,7 @@
 				AB0000000000000000000030 /* XISFFITSKeyword.swift in Sources */,
 				AB0000000000000000000037 /* XISFDataBlockLocation.swift in Sources */,
 				AB0000000000000000000039 /* XISFDataBlock.swift in Sources */,
+				AB0000000000000000000084 /* XISFDataBlocksFile.swift in Sources */,
 				AB0000000000000000000041 /* XISFCompression.swift in Sources */,
 				AB0000000000000000000047 /* XISFChecksum.swift in Sources */,
 				AB0000000000000000000052 /* XISFGeometry.swift in Sources */,
@@ -711,6 +718,7 @@
 				AB0000000000000000000034 /* XISFFITSKeyword.swift in Sources */,
 				AB000000000000000000003C /* XISFDataBlockLocation.swift in Sources */,
 				AB000000000000000000003E /* XISFDataBlock.swift in Sources */,
+				AB0000000000000000000086 /* XISFExternalDataBlock.swift in Sources */,
 				AB0000000000000000000044 /* XISFCompression.swift in Sources */,
 				AB000000000000000000004A /* XISFChecksum.swift in Sources */,
 				AB000000000000000000005F /* XISFGeometry.swift in Sources */,

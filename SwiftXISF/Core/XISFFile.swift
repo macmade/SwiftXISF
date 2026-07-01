@@ -142,7 +142,9 @@ public class XISFFile: CustomStringConvertible
             throw XISFError.cannotReadFile( url: url )
         }
 
-        try self.init( data: data, options: options )
+        // The header file's directory resolves `@header_dir` relative external
+        // data-block locations.
+        try self.init( data: data, baseURL: url.deletingLastPathComponent(), options: options )
     }
 
     /// Parses an XISF file from raw bytes.
@@ -150,6 +152,9 @@ public class XISFFile: CustomStringConvertible
     /// Validates the binary preamble (signature, header-length field and
     /// reserved field), slices out the UTF-8 XML header, parses it into an
     /// element tree, and validates the `xisf` root element.
+    ///
+    /// Because there is no originating file, `@header_dir` relative external
+    /// data-block locations cannot be resolved; accessing such a block throws.
     ///
     /// - Parameters:
     ///   - data: The complete file contents.
@@ -161,7 +166,21 @@ public class XISFFile: CustomStringConvertible
     ///   ``XISFError/malformedXML(reason:)`` if the header bytes are not valid
     ///   UTF-8 or not well-formed XML, or ``XISFError/invalidElement(reason:)``
     ///   if the root element is not a valid `xisf` element.
-    public init( data: Data, options: XISFParsingOptions ) throws
+    public convenience init( data: Data, options: XISFParsingOptions ) throws
+    {
+        try self.init( data: data, baseURL: nil, options: options )
+    }
+
+    /// Parses an XISF file from raw bytes, with an optional base directory for
+    /// resolving `@header_dir` relative external data-block locations.
+    ///
+    /// - Parameters:
+    ///   - data: The complete file contents.
+    ///   - baseURL: The directory of the header file, or `nil` when opened from
+    ///     raw data.
+    ///   - options: The parsing options to apply.
+    /// - Throws: the same errors as ``init(data:options:)``.
+    internal init( data: Data, baseURL: URL?, options: XISFParsingOptions ) throws
     {
         guard data.isEmpty == false
         else
@@ -216,10 +235,10 @@ public class XISFFile: CustomStringConvertible
 
         self.headerXML  = headerXML
         self.root       = root
-        self.properties = try XISFProperty.parseList( from: root, fileData: data, options: options )
+        self.properties = try XISFProperty.parseList( from: root, fileData: data, baseURL: baseURL, options: options )
         self.keywords   = try root.children( named: "FITSKeyword" ).map { try XISFFITSKeyword( element: $0, options: options ) }
-        self.images     = try root.children( named: "Image" ).map { try XISFImage( element: $0, fileData: data, options: options ) }
-        self.metadata   = try XISFFile.parseMetadata( root, fileData: data, options: options )
+        self.images     = try root.children( named: "Image" ).map { try XISFImage( element: $0, fileData: data, baseURL: baseURL, options: options ) }
+        self.metadata   = try XISFFile.parseMetadata( root, fileData: data, baseURL: baseURL, options: options )
     }
 
     /// Parses the unit-level `<Metadata>` element, if present.
@@ -233,12 +252,15 @@ public class XISFFile: CustomStringConvertible
     ///   - root: The root `xisf` element.
     ///   - fileData: The complete file bytes, used to resolve data-block backed
     ///     metadata property values.
+    ///   - baseURL: The directory of the XISF header file, used to resolve
+    ///     `@header_dir` relative external data blocks; `nil` when opened from
+    ///     raw data.
     ///   - options: The parsing options to apply.
     /// - Returns: The parsed metadata, or `nil` if none is present (or if a
     ///   malformed one was dropped under lenient parsing).
     /// - Throws: any ``XISFError`` raised while parsing the metadata under strict
     ///   parsing.
-    private static func parseMetadata( _ root: XISFElement, fileData: Data, options: XISFParsingOptions ) throws -> XISFMetadata?
+    private static func parseMetadata( _ root: XISFElement, fileData: Data, baseURL: URL?, options: XISFParsingOptions ) throws -> XISFMetadata?
     {
         guard let element = root.children( named: "Metadata" ).first
         else
@@ -248,7 +270,7 @@ public class XISFFile: CustomStringConvertible
 
         do
         {
-            return try XISFMetadata( element: element, fileData: fileData, options: options )
+            return try XISFMetadata( element: element, fileData: fileData, baseURL: baseURL, options: options )
         }
         catch
         {

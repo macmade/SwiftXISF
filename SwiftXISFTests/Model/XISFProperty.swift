@@ -37,7 +37,7 @@ struct Test_XISFProperty
     /// data blocks need none).
     private static func property( _ xml: String, options: XISFParsingOptions = .strict ) throws -> XISFProperty
     {
-        try XISFProperty( element: Test_XISFProperty.element( xml ), fileData: Data(), options: options )
+        try XISFProperty( element: Test_XISFProperty.element( xml ), fileData: Data(), baseURL: nil, options: options )
     }
 
     @Test

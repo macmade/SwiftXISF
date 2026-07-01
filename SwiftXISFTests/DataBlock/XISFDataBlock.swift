@@ -36,48 +36,48 @@ struct Test_XISFDataBlock
     @Test
     func resolvesInlineBase64() async throws
     {
-        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"inline:base64\">SGVsbG8=</Image>" ), fileData: Data(), options: .strict )
+        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"inline:base64\">SGVsbG8=</Image>" ), fileData: Data(), baseURL: nil, options: .strict )
 
-        #expect( block.rawBytes == Data( "Hello".utf8 ) )
+        #expect( try block.rawBytes == Data( "Hello".utf8 ) )
         #expect( block.location == .inline( encoding: .base64 ) )
     }
 
     @Test
     func resolvesInlineHex() async throws
     {
-        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"inline:hex\">48656c6c6f</Image>" ), fileData: Data(), options: .strict )
+        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"inline:hex\">48656c6c6f</Image>" ), fileData: Data(), baseURL: nil, options: .strict )
 
-        #expect( block.rawBytes == Data( "Hello".utf8 ) )
+        #expect( try block.rawBytes == Data( "Hello".utf8 ) )
     }
 
     @Test
     func resolvesEmbeddedBase64() async throws
     {
-        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"embedded\"><Data encoding=\"base64\">SGVsbG8=</Data></Image>" ), fileData: Data(), options: .strict )
+        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"embedded\"><Data encoding=\"base64\">SGVsbG8=</Data></Image>" ), fileData: Data(), baseURL: nil, options: .strict )
 
-        #expect( block.rawBytes == Data( "Hello".utf8 ) )
+        #expect( try block.rawBytes == Data( "Hello".utf8 ) )
         #expect( block.location == .embedded )
     }
 
     @Test
     func rejectsEmbeddedWithoutDataChild() async throws
     {
-        try #require( throws: XISFError.self ) { try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"embedded\"/>" ), fileData: Data(), options: .strict ) }
+        try #require( throws: XISFError.self ) { try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"embedded\"/>" ), fileData: Data(), baseURL: nil, options: .strict ) }
     }
 
     @Test
     func rejectsEmbeddedWithInvalidEncoding() async throws
     {
-        try #require( throws: XISFError.self ) { try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"embedded\"><Data encoding=\"base32\">xx</Data></Image>" ), fileData: Data(), options: .strict ) }
+        try #require( throws: XISFError.self ) { try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"embedded\"><Data encoding=\"base32\">xx</Data></Image>" ), fileData: Data(), baseURL: nil, options: .strict ) }
     }
 
     @Test
     func resolvesAttachmentSlice() async throws
     {
         let fileData = Data( ( 0 ..< 16 ).map { UInt8( $0 ) } )
-        let block    = try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"attachment:4:3\"/>" ), fileData: fileData, options: .strict )
+        let block    = try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"attachment:4:3\"/>" ), fileData: fileData, baseURL: nil, options: .strict )
 
-        #expect( Array( block.rawBytes ) == [ 0x04, 0x05, 0x06 ] )
+        #expect( Array( try block.rawBytes ) == [ 0x04, 0x05, 0x06 ] )
         #expect( block.location == .attachment( position: 4, size: 3 ) )
     }
 
@@ -86,19 +86,19 @@ struct Test_XISFDataBlock
     {
         let fileData = Data( ( 0 ..< 16 ).map { UInt8( $0 ) } )
 
-        try #require( throws: XISFError.self ) { try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"attachment:10:20\"/>" ), fileData: fileData, options: .strict ) }
+        try #require( throws: XISFError.self ) { try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"attachment:10:20\"/>" ), fileData: fileData, baseURL: nil, options: .strict ) }
     }
 
     @Test
     func rejectsMissingLocation() async throws
     {
-        try #require( throws: XISFError.self ) { try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image/>" ), fileData: Data(), options: .strict ) }
+        try #require( throws: XISFError.self ) { try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image/>" ), fileData: Data(), baseURL: nil, options: .strict ) }
     }
 
     @Test
     func capturesRawAttributes() async throws
     {
-        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"attachment:0:4\" compression=\"zlib:8\" checksum=\"sha-1:abcdef\" byteOrder=\"little\"/>" ), fileData: Data( [ 1, 2, 3, 4 ] ), options: .strict )
+        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"attachment:0:4\" compression=\"zlib:8\" checksum=\"sha-1:abcdef\" byteOrder=\"little\"/>" ), fileData: Data( [ 1, 2, 3, 4 ] ), baseURL: nil, options: .strict )
 
         #expect( block.compression?.codec            == .zlib )
         #expect( block.compression?.uncompressedSize == 8 )
@@ -110,7 +110,7 @@ struct Test_XISFDataBlock
     @Test
     func capturesEmbeddedCompressionFromDataChild() async throws
     {
-        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"embedded\"><Data encoding=\"base64\" compression=\"zlib:5\">SGVsbG8=</Data></Image>" ), fileData: Data(), options: .strict )
+        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"embedded\"><Data encoding=\"base64\" compression=\"zlib:5\">SGVsbG8=</Data></Image>" ), fileData: Data(), baseURL: nil, options: .strict )
 
         #expect( block.compression?.uncompressedSize == 5 )
     }
@@ -119,7 +119,7 @@ struct Test_XISFDataBlock
     func dataDecompressesCompressedBlock() throws
     {
         let xml      = "<Image location=\"inline:hex\" compression=\"zlib:132\">\( Test_XISFCompression.zlibTextHex )</Image>"
-        let block    = try XISFDataBlock( element: Test_XISFDataBlock.element( xml ), fileData: Data(), options: .strict )
+        let block    = try XISFDataBlock( element: Test_XISFDataBlock.element( xml ), fileData: Data(), baseURL: nil, options: .strict )
         let original = try Test_XISFCompression.textHex.xisfHexDecodedData()
 
         #expect( try block.data == original )
@@ -129,7 +129,7 @@ struct Test_XISFDataBlock
     @Test
     func dataEqualsRawBytesWhenUncompressed() throws
     {
-        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"inline:hex\">deadbeef</Image>" ), fileData: Data(), options: .strict )
+        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"inline:hex\">deadbeef</Image>" ), fileData: Data(), baseURL: nil, options: .strict )
 
         #expect( block.compression == nil )
         #expect( try block.data == Data( [ 0xDE, 0xAD, 0xBE, 0xEF ] ) )
@@ -138,7 +138,7 @@ struct Test_XISFDataBlock
     @Test
     func dataThrowsOnCorruptCompressedStream() async throws
     {
-        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"inline:hex\" compression=\"zlib:132\">789c010203</Image>" ), fileData: Data(), options: .strict )
+        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"inline:hex\" compression=\"zlib:132\">789c010203</Image>" ), fileData: Data(), baseURL: nil, options: .strict )
 
         try #require( throws: XISFError.self ) { _ = try block.data }
     }
@@ -147,7 +147,7 @@ struct Test_XISFDataBlock
     func verifiesChecksumOnDataAccessWhenEnabled() throws
     {
         let xml   = "<Image location=\"inline:hex\" checksum=\"sha-256:\( Test_XISFChecksum.sha256Hex )\">deadbeef</Image>"
-        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( xml ), fileData: Data(), options: .strict )
+        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( xml ), fileData: Data(), baseURL: nil, options: .strict )
 
         #expect( block.checksum?.algorithm == .sha256 )
         #expect( try block.data == Data( [ 0xDE, 0xAD, 0xBE, 0xEF ] ) )
@@ -157,7 +157,7 @@ struct Test_XISFDataBlock
     func throwsOnChecksumMismatchWhenEnabled() async throws
     {
         let xml   = "<Image location=\"inline:hex\" checksum=\"sha-256:0000000000000000000000000000000000000000000000000000000000000000\">deadbeef</Image>"
-        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( xml ), fileData: Data(), options: .strict )
+        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( xml ), fileData: Data(), baseURL: nil, options: .strict )
 
         try #require( throws: XISFError.self ) { _ = try block.data }
     }
@@ -166,7 +166,7 @@ struct Test_XISFDataBlock
     func skipsChecksumWhenVerificationDisabled() throws
     {
         let xml   = "<Image location=\"inline:hex\" checksum=\"sha-256:0000000000000000000000000000000000000000000000000000000000000000\">deadbeef</Image>"
-        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( xml ), fileData: Data(), options: .lenient )
+        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( xml ), fileData: Data(), baseURL: nil, options: .lenient )
 
         #expect( try block.data == Data( [ 0xDE, 0xAD, 0xBE, 0xEF ] ) )
     }
@@ -178,7 +178,7 @@ struct Test_XISFDataBlock
         // fail), proving the checksum is read from the child rather than the
         // checksum-less parent.
         let xml   = "<Image location=\"embedded\"><Data encoding=\"hex\" checksum=\"sha-256:0000000000000000000000000000000000000000000000000000000000000000\">deadbeef</Data></Image>"
-        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( xml ), fileData: Data(), options: .strict )
+        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( xml ), fileData: Data(), baseURL: nil, options: .strict )
 
         #expect( block.checksum?.algorithm == .sha256 )
 
