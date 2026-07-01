@@ -35,6 +35,8 @@
 		AB0000000000000000000039 /* XISFDataBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000038 /* XISFDataBlock.swift */; };
 		AB000000000000000000003C /* XISFDataBlockLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000003B /* XISFDataBlockLocation.swift */; };
 		AB000000000000000000003E /* XISFDataBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000000000000000000003D /* XISFDataBlock.swift */; };
+		AB0000000000000000000041 /* XISFCompression.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000040 /* XISFCompression.swift */; };
+		AB0000000000000000000044 /* XISFCompression.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000043 /* XISFCompression.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -126,6 +128,8 @@
 		AB0000000000000000000038 /* XISFDataBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFDataBlock.swift; sourceTree = "<group>"; };
 		AB000000000000000000003B /* XISFDataBlockLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFDataBlockLocation.swift; sourceTree = "<group>"; };
 		AB000000000000000000003D /* XISFDataBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFDataBlock.swift; sourceTree = "<group>"; };
+		AB0000000000000000000040 /* XISFCompression.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFCompression.swift; sourceTree = "<group>"; };
+		AB0000000000000000000043 /* XISFCompression.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XISFCompression.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -301,6 +305,7 @@
 				AB0000000000000000000001 /* Core */,
 				AB0000000000000000000023 /* Model */,
 				AB0000000000000000000035 /* DataBlock */,
+				AB000000000000000000003F /* Compression */,
 				AB000000000000000000000B /* Extensions */,
 			);
 			path = SwiftXISF;
@@ -312,6 +317,7 @@
 				AB0000000000000000000006 /* Core */,
 				AB0000000000000000000028 /* Model */,
 				AB000000000000000000003A /* DataBlock */,
+				AB0000000000000000000042 /* Compression */,
 				AB0000000000000000000012 /* Extensions */,
 			);
 			path = SwiftXISFTests;
@@ -355,6 +361,22 @@
 				AB000000000000000000003D /* XISFDataBlock.swift */,
 			);
 			path = DataBlock;
+			sourceTree = "<group>";
+		};
+		AB000000000000000000003F /* Compression */ = {
+			isa = PBXGroup;
+			children = (
+				AB0000000000000000000040 /* XISFCompression.swift */,
+			);
+			path = Compression;
+			sourceTree = "<group>";
+		};
+		AB0000000000000000000042 /* Compression */ = {
+			isa = PBXGroup;
+			children = (
+				AB0000000000000000000043 /* XISFCompression.swift */,
+			);
+			path = Compression;
 			sourceTree = "<group>";
 		};
 		AB0000000000000000000001 /* Core */ = {
@@ -522,6 +544,7 @@
 				AB0000000000000000000030 /* XISFFITSKeyword.swift in Sources */,
 				AB0000000000000000000037 /* XISFDataBlockLocation.swift in Sources */,
 				AB0000000000000000000039 /* XISFDataBlock.swift in Sources */,
+				AB0000000000000000000041 /* XISFCompression.swift in Sources */,
 				AB0000000000000000000003 /* XISFError.swift in Sources */,
 				AB0000000000000000000005 /* XISFParsingOptions.swift in Sources */,
 				AB000000000000000000000D /* Data.swift in Sources */,
@@ -542,6 +565,7 @@
 				AB0000000000000000000034 /* XISFFITSKeyword.swift in Sources */,
 				AB000000000000000000003C /* XISFDataBlockLocation.swift in Sources */,
 				AB000000000000000000003E /* XISFDataBlock.swift in Sources */,
+				AB0000000000000000000044 /* XISFCompression.swift in Sources */,
 				AB0000000000000000000008 /* XISFError.swift in Sources */,
 				AB000000000000000000000A /* XISFParsingOptions.swift in Sources */,
 				AB0000000000000000000014 /* Data.swift in Sources */,

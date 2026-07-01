@@ -29,20 +29,21 @@ import Foundation
 ///
 /// Resolution decodes inline/embedded encodings and slices the attached region,
 /// yielding the block's *raw* (still as-stored, possibly compressed) bytes via
-/// ``rawBytes``. Decompression, byte-unshuffling and checksum verification are
-/// layered on top in later stages; the `compression`, `checksum` and `byteOrder`
-/// attributes are captured here for those stages.
+/// ``rawBytes``. The fully decoded bytes — decompressed and byte-unshuffled per
+/// the block's ``compression`` — are available via ``data``, computed lazily and
+/// cached on first access. The `checksum` and `byteOrder` attributes are
+/// captured as raw strings for later stages.
 ///
-/// Like `FITSBlock`, this is a reference type so derived values can be cached on
-/// read.
+/// Like `FITSBlock`, this is a reference type so ``data`` can be computed once
+/// and cached. Because that caching mutates on read, it is not thread-safe and
+/// not `Sendable`: a block must not be read concurrently from multiple threads.
 public final class XISFDataBlock
 {
     /// Where the block's bytes are stored.
     public let location: XISFDataBlockLocation
 
-    /// The raw `compression` attribute, or `nil` if the block is uncompressed.
-    /// Parsed into a codec descriptor in a later stage.
-    public let rawCompression: String?
+    /// The block's compression, or `nil` if it is uncompressed.
+    public let compression: XISFCompression?
 
     /// The raw `checksum` attribute, or `nil` if the block has no checksum.
     /// Parsed and verified in a later stage.
@@ -54,8 +55,34 @@ public final class XISFDataBlock
 
     /// The block's raw, as-stored bytes: decoded from the inline/embedded
     /// encoding, or sliced from the attached region. These bytes are still
-    /// compressed if the block declares a `compression`.
+    /// compressed if the block declares a ``compression``.
     public let rawBytes: Data
+
+    /// The fully decoded bytes, computed lazily and cached on first access (the
+    /// result, success or failure, is cached). Decompresses and byte-unshuffles
+    /// ``rawBytes`` per the block's ``compression``, or returns ``rawBytes``
+    /// unchanged when the block is uncompressed.
+    private lazy var decoded: Result<Data, any Error> = Result
+    {
+        guard let compression = self.compression
+        else
+        {
+            return self.rawBytes
+        }
+
+        return try compression.decompress( self.rawBytes )
+    }
+
+    /// The block's fully decoded bytes: decompressed and byte-unshuffled per its
+    /// ``compression``, or ``rawBytes`` if the block is uncompressed.
+    ///
+    /// Computed once on first access and cached.
+    ///
+    /// - Throws: ``XISFError/decompressionError(reason:)`` if decompression fails.
+    public var data: Data
+    {
+        get throws { try self.decoded.get() }
+    }
 
     /// Resolves a data block from an element that declares a `location`.
     ///
@@ -83,11 +110,16 @@ public final class XISFDataBlock
         self.rawChecksum  = element.attributes[ "checksum" ]
         self.rawByteOrder = element.attributes[ "byteOrder" ]
 
+        // The element that carries the compression description: for an embedded
+        // block it is the <Data> child (with the parent as a fallback),
+        // otherwise the element itself.
+        let compressionSource: XISFElement
+
         switch location
         {
             case .inline( let encoding ):
-                self.rawCompression = element.attributes[ "compression" ]
-                self.rawBytes       = try XISFDataBlock.decode( element.content, encoding: encoding )
+                self.rawBytes     = try XISFDataBlock.decode( element.content, encoding: encoding )
+                compressionSource = element
 
             case .embedded:
                 guard let dataElement = element.children( named: "Data" ).first
@@ -102,22 +134,24 @@ public final class XISFDataBlock
                     throw XISFError.dataBlockError( reason: "Embedded <Data> element has a missing or invalid 'encoding' attribute" )
                 }
 
-                // For an embedded block the compression is declared on the
-                // <Data> child, falling back to the parent element.
-                self.rawCompression = dataElement.attributes[ "compression" ] ?? element.attributes[ "compression" ]
-                self.rawBytes       = try XISFDataBlock.decode( dataElement.content, encoding: encoding )
+                self.rawBytes     = try XISFDataBlock.decode( dataElement.content, encoding: encoding )
+                compressionSource = dataElement
 
             case .attachment( let position, let size ):
-                self.rawCompression = element.attributes[ "compression" ]
-
                 guard let bytes = try? fileData.bytes( at: position, count: size )
                 else
                 {
                     throw XISFError.dataBlockError( reason: "Attachment range (position \( position ), size \( size )) is out of bounds for the \( fileData.count )-byte file" )
                 }
 
-                self.rawBytes = bytes
+                self.rawBytes     = bytes
+                compressionSource = element
         }
+
+        let compressionAttribute = compressionSource.attributes[ "compression" ] ?? element.attributes[ "compression" ]
+        let subblocksAttribute   = compressionSource.attributes[ "subblocks" ]   ?? element.attributes[ "subblocks" ]
+
+        self.compression = try compressionAttribute.map { try XISFCompression( attribute: $0, subblocks: subblocksAttribute ) }
     }
 
     /// Decodes inline/embedded text into bytes.

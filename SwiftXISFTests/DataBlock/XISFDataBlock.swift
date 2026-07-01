@@ -100,9 +100,10 @@ struct Test_XISFDataBlock
     {
         let block = try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"attachment:0:4\" compression=\"zlib:8\" checksum=\"sha-1:abcdef\" byteOrder=\"little\"/>" ), fileData: Data( [ 1, 2, 3, 4 ] ), options: .strict )
 
-        #expect( block.rawCompression == "zlib:8" )
-        #expect( block.rawChecksum    == "sha-1:abcdef" )
-        #expect( block.rawByteOrder   == "little" )
+        #expect( block.compression?.codec            == .zlib )
+        #expect( block.compression?.uncompressedSize == 8 )
+        #expect( block.rawChecksum                   == "sha-1:abcdef" )
+        #expect( block.rawByteOrder                  == "little" )
     }
 
     @Test
@@ -110,6 +111,34 @@ struct Test_XISFDataBlock
     {
         let block = try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"embedded\"><Data encoding=\"base64\" compression=\"zlib:5\">SGVsbG8=</Data></Image>" ), fileData: Data(), options: .strict )
 
-        #expect( block.rawCompression == "zlib:5" )
+        #expect( block.compression?.uncompressedSize == 5 )
+    }
+
+    @Test
+    func dataDecompressesCompressedBlock() throws
+    {
+        let xml      = "<Image location=\"inline:hex\" compression=\"zlib:132\">\( Test_XISFCompression.zlibTextHex )</Image>"
+        let block    = try XISFDataBlock( element: Test_XISFDataBlock.element( xml ), fileData: Data(), options: .strict )
+        let original = try Test_XISFCompression.textHex.xisfHexDecodedData()
+
+        #expect( try block.data == original )
+        #expect( block.compression?.codec == .zlib )
+    }
+
+    @Test
+    func dataEqualsRawBytesWhenUncompressed() throws
+    {
+        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"inline:hex\">deadbeef</Image>" ), fileData: Data(), options: .strict )
+
+        #expect( block.compression == nil )
+        #expect( try block.data == Data( [ 0xDE, 0xAD, 0xBE, 0xEF ] ) )
+    }
+
+    @Test
+    func dataThrowsOnCorruptCompressedStream() async throws
+    {
+        let block = try XISFDataBlock( element: Test_XISFDataBlock.element( "<Image location=\"inline:hex\" compression=\"zlib:132\">789c010203</Image>" ), fileData: Data(), options: .strict )
+
+        try #require( throws: XISFError.self ) { _ = try block.data }
     }
 }
