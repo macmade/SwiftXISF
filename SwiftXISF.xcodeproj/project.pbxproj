@@ -769,7 +769,6 @@
 			baseConfigurationReference = 052104BA2FF3AEAE0089C911 /* Debug - Library.xcconfig */;
 			buildSettings = {
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 326Y53CJMD;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				SWIFT_VERSION = 6.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -782,7 +781,6 @@
 			baseConfigurationReference = 052104BF2FF3AEAE0089C911 /* Release - Library.xcconfig */;
 			buildSettings = {
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 326Y53CJMD;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				SWIFT_VERSION = 6.0;
 				VERSIONING_SYSTEM = "apple-generic";
