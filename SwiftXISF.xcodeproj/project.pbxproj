@@ -71,8 +71,6 @@
 		AB00000000000000000000A1 /* TestError.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000000000000000000A0 /* TestError.swift */; };
 		AB00000000000000000000A3 /* TestUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000000000000000000A2 /* TestUtilities.swift */; };
 		AB00000000000000000000A5 /* Descriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000000000000000000A4 /* Descriptions.swift */; };
-		AB00000000000000000000B1 /* masterLight_BIN-1_1080x1920_EXPOSURE-10.00s_FILTER-LP_RGB_drizzle_1x_autocrop.xisf in Resources */ = {isa = PBXBuildFile; fileRef = AB00000000000000000000B0 /* masterLight_BIN-1_1080x1920_EXPOSURE-10.00s_FILTER-LP_RGB_drizzle_1x_autocrop.xisf */; };
-		AB00000000000000000000B3 /* masterLight_BIN-1_1080x1920_EXPOSURE-10.00s_FILTER-LP_RGB_drizzle_1x_autocrop_corrected.xisf in Resources */ = {isa = PBXBuildFile; fileRef = AB00000000000000000000B2 /* masterLight_BIN-1_1080x1920_EXPOSURE-10.00s_FILTER-LP_RGB_drizzle_1x_autocrop_corrected.xisf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -692,8 +690,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AB00000000000000000000B1 /* masterLight_BIN-1_1080x1920_EXPOSURE-10.00s_FILTER-LP_RGB_drizzle_1x_autocrop.xisf in Resources */,
-				AB00000000000000000000B3 /* masterLight_BIN-1_1080x1920_EXPOSURE-10.00s_FILTER-LP_RGB_drizzle_1x_autocrop_corrected.xisf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
